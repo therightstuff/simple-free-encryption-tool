@@ -1,0 +1,198 @@
+<html>
+    <head>
+        <title>Simple Free Encryption Tool</title>
+        <link rel="stylesheet" href="css/toastr.min.css" />
+
+        <script src="js/jquery-3.1.1.min.js"></script>
+        
+        <script src="js/windowSfet.js"></script>
+
+        <script src="js/toastr.min.js"></script>
+
+        <script language="javascript">
+            var keys = {};
+
+            function hashMD5(){
+                var plaintext = $('#md5Plaintext').val();
+                var hash = sfet.md5.hash(plaintext);
+                $('#md5Hash').val(hash);
+                toastr.success('MD5 hash generated');
+            }
+
+            function generateKeys(){
+                toastr.info('generating keys');
+                setTimeout(()=> {
+                    keys = sfet.rsa.generateKeysSync($('#keySize').val());
+                    toastr.success(keys.keySize + '-bit keys generated in ' + keys.time + 'ms');
+                    $('#rsaPublicKey').val(keys.public);
+                    $('#rsaPrivateKey').val(keys.private);
+                }, 750);
+            }
+
+            function updateRSAKeys(){
+                keys.public = $('#rsaPublicKey').val();
+                keys.private = $('#rsaPrivateKey').val();
+                toastr.success('RSA keys updated');
+            }
+
+            function encryptRSA() {
+                if (!keys || !keys.public || keys.public.length == 0){
+                    return toastr.error('RSA Public Key required');
+                }
+                var plaintext = $('#rsaPlaintext').val();
+                try {
+                    var encrypted = sfet.rsa.encrypt(keys.public, plaintext);
+                    $('#rsaEncryptedText').val(encrypted);
+                    toastr.success('RSA encryption successful');
+                } catch (error){
+                    toastr.error(error.message);
+                }
+            }
+
+            function decryptRSA() {
+                if (!keys || !keys.private || keys.private.length == 0){
+                    return toastr.error('RSA Private Key required');
+                }
+                var encrypted = $('#rsaEncryptedText').val();
+                try {
+                    var decrypted = sfet.rsa.decrypt(keys.private, encrypted);
+                    $('#rsaPlaintext').val(decrypted);
+                    toastr.success('RSA decryption successful');
+                } catch (error){
+                    toastr.error(error.message);
+                }
+            }
+
+            function encryptAES() {
+                var key = $('#aesKey').val();
+                if (!key || !key.length > 0){
+                    return toastr.error('Cannot use AES encryption without key')
+                }
+                var plaintext = $('#aesPlaintext').val();
+                try {
+                    var encrypted = sfet.aes.encrypt(key, plaintext);
+                    $('#aesEncryptedText').val(encrypted);
+                    toastr.success('AES encryption successful');
+                } catch (error){
+                    toastr.error(error.message);
+                }
+            }
+
+            function decryptAES() {
+                var key = $('#aesKey').val();
+                if (!key || !key.length > 0){
+                    return toastr.error('Cannot use AES encryption without key')
+                }
+                var encrypted = $('#aesEncryptedText').val();
+                try {
+                    var decrypted = sfet.aes.decrypt(key, encrypted);
+                    $('#aesPlaintext').val(decrypted);
+                    toastr.success('AES decryption successful');
+                } catch (error){
+                    toastr.error(error.message);
+                }
+            }
+            // Call this code when the page is done loading.
+            $(function () {
+            });
+        </script>
+        <style>
+            textarea {
+                width: 250px;
+                height: 75px;
+            }
+        </style>
+    </head>
+    <body>
+        <center>
+        <h1>Simple Free Encryption Tool</h1>
+        <b>Simple Free Encryption Tool (sfet)</b> uses RSA and AES versions that are strong
+        <br />
+        and allow encryption between client-side Javascript, Node.js and C#.
+        <br />
+        <br />
+        Open and free for all to see, can be run stand-alone for extra security,
+        <br />
+        see <a href="https://github.com/therightstuff/simple-free-encryption-tool" target="_blank">https://github.com/therightstuff/simple-free-encryption-tool</a>
+        <h2>MD5</h2>
+        <table>
+            <tr>
+                <td colspan="2" align="center"><button onclick="hashMD5()">Hash!</button></td>
+            </tr>
+            <tr>
+                <td>Initial text</td>
+                <td>MD5 Hash</td>
+            </tr>
+            <tr>
+                <td><textarea id="md5Plaintext"></textarea></td>
+                <td><input id="md5Hash" size="40" style="text-align: center" /></td>
+            </tr>
+        </table>
+
+        <h2>RSA</h2>
+        <div>
+            RSA Keys generated with PKCS1 padding, OPENSSH PEM format is compatible with C#.
+            <br />
+            <ul>C# counterparts:
+                <li><a href="https://gist.github.com/therightstuff/aa65356e95f8d0aae888e9f61aa29414" target="_blank">key importer / exporter</a></li>
+                <li><a href="https://gist.github.com/therightstuff/4db89368887dba2fe8935b2fb329f5aa" target="_blank">encrypt / decrypt functions</a></li>
+            </ul>
+        </div>
+        <table>
+            <tr>
+                <td colspan="2" align="center"><select id="keySize">
+                    <option value="2048" selected="selected">2048</option>
+                    <option value="4096">4096</option>
+                </select>-bit <button onclick="generateKeys()">Generate New Key Pair!</button></td>
+            </tr>
+            <tr>
+                <td>Public Key</td>
+                <td>Private Key</td>
+            </tr>
+            <tr>
+                <td><textarea id="rsaPublicKey" onchange="updateRSAKeys()" oninput="updateRSAKeys()"></textarea></td>
+                <td><textarea id="rsaPrivateKey" onchange="updateRSAKeys()" oninput="updateRSAKeys()"></textarea></td>
+            </tr>
+            <tr>
+                <td align="center"><button onclick="encryptRSA()">Encrypt</button></td>
+                <td align="center"><button onclick="decryptRSA()">Decrypt</button></td>
+            </tr>
+            <tr>
+                <td>Unencrypted text</td>
+                <td>Encrypted text</td>
+            </tr>
+            <tr>
+                <td><textarea id="rsaPlaintext"></textarea></td>
+                <td><textarea id="rsaEncryptedText"></textarea></td>
+            </tr>
+        </table>
+
+        <h2>AES</h2>
+        <div>
+            AES-256 CBC mode is compatible with C#.
+            <br />
+            <ul>C# counterparts:
+                <li><a href="https://gist.github.com/therightstuff/30e5cbd9b1e0de1b8865c8fb6e2971e4" target="_blank">encrypt / decrypt functions</a></li>
+            </ul>
+        </div>
+        <table>
+                <tr>
+                    <td colspan="2" align="center">Key: <input id="aesKey" /></td>
+                </tr>
+                <tr>
+                    <td align="center"><button onclick="encryptAES()">Encrypt</button></td>
+                    <td align="center"><button onclick="decryptAES()">Decrypt</button></td>
+                </tr>
+                <tr>
+                    <td>Unencrypted text</td>
+                    <td>Encrypted text</td>
+                </tr>
+                <tr>
+                    <td><textarea id="aesPlaintext"></textarea></td>
+                    <td><textarea id="aesEncryptedText"></textarea></td>
+                </tr>
+            </table>
+    
+        </center>
+    </body>
+</html>

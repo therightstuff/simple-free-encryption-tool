@@ -1,0 +1,38 @@
+{
+  "name": "simple-free-encryption-tool",
+  "version": "1.0.0",
+  "description": "Simple Free RSA / AES Encryption and Decryption",
+  "main": "index.js",
+  "scripts": {
+    "build": "browserify src/windowSfet.js -o dist/js/windowSfet.js",
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/therightstuff/simple-free-encryption-tool.git"
+  },
+  "keywords": [
+    "encrypt",
+    "encryption",
+    "decrypt",
+    "decryption",
+    "rsa",
+    "aes",
+    "node",
+    "html5"
+  ],
+  "author": "therightstuff",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/therightstuff/simple-free-encryption-tool/issues"
+  },
+  "homepage": "https://github.com/therightstuff/simple-free-encryption-tool#readme",
+  "dependencies": {
+    "node-rsa": "^1.0.3",
+    "randomstring": "^1.1.5"
+  },
+  "devDependencies": {
+    "browserify": "^16.2.3",
+    "mocha": "^5.2.0"
+  }
+}
