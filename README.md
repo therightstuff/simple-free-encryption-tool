@@ -47,13 +47,16 @@ npm run build
 ```
 const sfet = require('simple-free-encryption-tool');
 
-// rsa.generateKeys() runs key generation in a separate child process
-rsa.generateKeys(defaultKeySize, (error, generatedKeyPair) => {
-    ...
+// (key size defaults to 2048 if null)
+var keySize = 2048;
+
+// generateKeys() runs key generation in a separate child process
+sfet.rsa.generateKeys(keySize, (error, keys) => {
+    console.log(keys.keySize + '-bit key pair generated asynchronously in ' + keys.time + 'ms');
 });
 
-var keys = sfet.rsa.generateKeysSync();
-console.log(keys.keySize + '-bit key pair generated in ' + keys.time + 'ms');
+var keys = sfet.rsa.generateKeysSync(keySize);
+console.log(keys.keySize + '-bit key pair generated synchronously in ' + keys.time + 'ms');
 
 var encrypted = sfet.rsa.encrypt(keys.public, "secret rsa message");
 var decrypted = sfet.rsa.decrypt(keys.private, encrypted);
