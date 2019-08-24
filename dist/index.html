@@ -63,7 +63,13 @@
                 }
             }
 
-            function encryptAES() {
+            function generateRandomKey(){
+                $('#aesKey').val(
+                    Math.random().toString(36).substring(2, 16)
+                );
+            }
+
+            function encryptAESText() {
                 var key = $('#aesKey').val();
                 if (!key || !key.length > 0){
                     return toastr.error('Cannot use AES encryption without key')
@@ -78,7 +84,7 @@
                 }
             }
 
-            function decryptAES() {
+            function decryptAESText() {
                 var key = $('#aesKey').val();
                 if (!key || !key.length > 0){
                     return toastr.error('Cannot use AES encryption without key')
@@ -92,8 +98,141 @@
                     toastr.error(error.message);
                 }
             }
+
+            function showAesSelectedOptions(){
+                var selected = $('#aesSelector').val();
+                switch (selected){
+                    case "file":
+                        $('.aesTextOptions').hide();
+                        $('.aesFileOptions').show();
+                        break;
+                    case "text":
+                        $('.aesTextOptions').show();
+                        $('.aesFileOptions').hide();
+                        break;    
+                }
+            }
+
+            function encryptAESFile(){
+                var key = $('#aesKey').val();
+                if (!key || key.length == 0){
+                    return toastr.error('Cannot use AES encryption without key')
+                }
+                var filename = $('#aesSourceFile').val();
+                if (!filename || filename.length == 0){
+                    return toastr.error('Source file must be specified');
+                }
+
+                $('#aesResultFile').hide();
+
+                // load file contents into base64
+                var reader = new FileReader();
+                var file = $('#aesSourceFile')[0].files[0];
+                reader.readAsDataURL(file);
+                reader.onload = function () {
+                    // strip metadata, encrypt the rest, then reattach
+                    var contentIndex = reader.result.indexOf('base64,') + 'base64'.length + 1;
+                    var metadata = reader.result.substr(0, contentIndex);
+                    var content = reader.result.substr(contentIndex);
+
+                    try {
+                        $('#aesResultFile').attr(
+                            'href',
+                            metadata + sfet.aes.encrypt(key, content)
+                        );
+
+                        // get filename from (fake) full path
+                        var strippedFilename = filename.replace(/^.*[\\\/]/, '');
+                        $('#aesResultFile').attr(
+                            'download',
+                            strippedFilename + '.encrypted'
+                        );
+
+                        toastr.success('AES encryption successful');
+                        $('#aesResultFile').show();
+                    } catch (error){
+                        toastr.error(error.message);
+                    }
+                };
+                reader.onerror = function (error) {
+                    return toastr.error(error);
+                };                
+            }
+
+            function decryptAESFile(){
+                var key = $('#aesKey').val();
+                if (!key || !key.length > 0){
+                    return toastr.error('Cannot use AES decryption without key')
+                }
+                var filename = $('#aesSourceFile').val();
+                if (!filename || filename.length == 0){
+                    return toastr.error('Source file must be specified');
+                }
+
+                $('#aesResultFile').hide();
+
+                // load file contents into base64
+                var reader = new FileReader();
+                var file = $('#aesSourceFile')[0].files[0];
+                reader.readAsDataURL(file);
+                reader.onload = function () {
+                    // strip metadata, decrypt the rest, then reattach
+                    var contentIndex = reader.result.indexOf('base64,') + 'base64'.length + 1;
+                    var metadata = reader.result.substr(0, contentIndex);
+                    var content = reader.result.substr(contentIndex);
+
+                    try {
+                        $('#aesResultFile').attr(
+                            'href',
+                            metadata + sfet.aes.decrypt(key, content)
+                        );
+
+                        // get filename from (fake) full path
+                        var strippedFilename = filename.replace(/^.*[\\\/]/, '');
+                        // remove '.encrypted' extension if it's there
+                        var encryptedExtensionIndex = strippedFilename.lastIndexOf('.encrypted');
+                        if (encryptedExtensionIndex >= 0) {
+                            strippedFilename = strippedFilename.substr(0, encryptedExtensionIndex);
+                        }
+                        $('#aesResultFile').attr(
+                            'download',
+                            strippedFilename
+                        );
+
+                        toastr.success('AES decryption successful');
+                        $('#aesResultFile').show();
+                    } catch (error){
+                        toastr.error(error.message);
+                    }
+                };
+                reader.onerror = function (error) {
+                    return toastr.error(error);
+                };                
+            }
+
             // Call this code when the page is done loading.
             $(function () {
+                // Check for the various File API support.
+                if (window.File && window.FileReader && window.FileList && window.Blob) {
+                    console.log('file handling available');
+                    $('#aesSelectorDiv').html(
+                        '<br /><select id="aesSelector">' +
+                        '<option value="text">Text</option>' +
+                        '<option value="file">Binary File</option>' +
+                        '</select>'
+                    );
+                    $('#aesSelector').change(() => {
+                        showAesSelectedOptions();
+                    });
+                    showAesSelectedOptions();
+
+                    $('#aesSourceFile').change(() => {
+                        $('#aesResultFile').hide();
+                    });
+                    $('#aesResultFile').hide();
+                } else {
+                    console.log('file handling not available');
+                }
             });
         </script>
         <style>
@@ -105,15 +244,31 @@
     </head>
     <body>
         <center>
+        <div style="width:500px;">
         <h1>Simple Free Encryption Tool</h1>
-        <b>Simple Free Encryption Tool (sfet)</b> uses RSA and AES versions that are strong
-        <br />
-        and allow encryption between client-side Javascript, Node.js and C#.
+        <b>Simple Free Encryption Tool (sfet)</b> uses RSA and AES versions that are strong and allow
+        encryption between client-side Javascript, Node.js and C#.
         <br />
         <br />
         Open and free for all to see, can be run stand-alone for extra security,
         <br />
         see <a href="https://github.com/therightstuff/simple-free-encryption-tool" target="_blank">https://github.com/therightstuff/simple-free-encryption-tool</a>
+        <br />
+        <br />
+        <b><u>Encryption 101</u></b>:
+        <br />
+            RSA encryption operates on a very limited string length, it is generally used to asymmetrically
+            encrypt a shared secret that in turn is used for symmetric encryption. The standard use-case is
+            to generate a random shared secret and transmit it encrypted with the destination's public RSA
+            key. Once the destination has decrypted the shared secret with its private RSA key both sides
+            will be able to use that secret to encrypt and decrypt communication with AES.
+        <br />
+        <br />
+        <b><u>File Encryption</u></b>:
+        <br />
+            If your browser supports it, you will be able to encrypt and decrypt files from this interface.
+            The file metadata (eg. MIME type) will not be encrypted, only the file contents.
+        </div>
         <h2>MD5</h2>
         <table>
             <tr>
@@ -177,17 +332,30 @@
         </div>
         <table>
                 <tr>
-                    <td colspan="2" align="center">Key: <input id="aesKey" /></td>
+                    <td colspan="2" align="center">
+                        Key: <input id="aesKey" /> <button onclick="generateRandomKey()">Generate random key</button>
+                        <div id="aesSelectorDiv"></div>
+                    </td>
                 </tr>
-                <tr>
-                    <td align="center"><button onclick="encryptAES()">Encrypt</button></td>
-                    <td align="center"><button onclick="decryptAES()">Decrypt</button></td>
+                <tr class="aesFileOptions">
+                        <td align="center"><button onclick="encryptAESFile()">Encrypt</button></td>
+                        <td align="center"><button onclick="decryptAESFile()">Decrypt</button></td>
                 </tr>
-                <tr>
+                <tr class="aesFileOptions">
+                    <td colspan="2">Source File: <input type="file" id="aesSourceFile" /></td>
+                </tr>
+                <tr class="aesFileOptions">
+                    <td colspan="2">Result File: <a id="aesResultFile" href="data:application/octet-stream;charset=utf-8;base64,Zm9vIGJhcg==">Download Result</a></td>
+                </tr>    
+                <tr class="aesTextOptions">
+                    <td align="center"><button onclick="encryptAESText()">Encrypt</button></td>
+                    <td align="center"><button onclick="decryptAESText()">Decrypt</button></td>
+                </tr>
+                <tr class="aesTextOptions">
                     <td>Unencrypted text</td>
                     <td>Encrypted text</td>
                 </tr>
-                <tr>
+                <tr class="aesTextOptions">
                     <td><textarea id="aesPlaintext"></textarea></td>
                     <td><textarea id="aesEncryptedText"></textarea></td>
                 </tr>
