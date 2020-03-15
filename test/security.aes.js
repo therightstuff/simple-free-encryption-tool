@@ -26,12 +26,12 @@ describe('aes', function() {
         it('throw an error on invalid cipher data', function() {
             assert.throws(() => {
                 aes.encrypt(secret);
-            }, (err) => err.message === 'Cipher data must be a string or a buffer')
+            }, (err) => err.message === 'The "data" argument must be one of type string, Buffer, TypedArray, or DataView. Received type undefined')
         });
         it('throw an error on invalid key', function() {
             assert.throws(() => {
                 aes.encrypt();
-            }, (err) => err.message === 'Key must be a buffer')
+            }, (err) => err.message === 'The "password" argument must be one of type string, Buffer, TypedArray, or DataView. Received type undefined')
         });
     });
     
@@ -39,12 +39,12 @@ describe('aes', function() {
         it('throw an error on invalid cipher data', function() {
             assert.throws(() => {
                 aes.decrypt(secret);
-            }, (err) => err.message === 'Cipher data must be a string or a buffer')
+            }, (err) => err.message === 'The "data" argument must be one of type string, Buffer, TypedArray, or DataView. Received type undefined')
         });
         it('throw an error on invalid key', function() {
             assert.throws(() => {
                 aes.decrypt();
-            }, (err) => err.message === 'Key must be a buffer')
+            }, (err) => err.message === 'The "password" argument must be one of type string, Buffer, TypedArray, or DataView. Received type undefined')
         });
   });
 

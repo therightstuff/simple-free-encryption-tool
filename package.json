@@ -4,7 +4,7 @@
   "description": "Simple Free RSA / AES Encryption and Decryption",
   "main": "index.js",
   "scripts": {
-    "build": "browserify src/windowSfet.js -o dist/js/windowSfet.js",
+    "build": "npm run test && browserify src/windowSfet.js -o dist/js/windowSfet.js",
     "test": "mocha"
   },
   "repository": {
@@ -42,6 +42,6 @@
   },
   "devDependencies": {
     "browserify": "^16.5.0",
-    "mocha": "^5.2.0"
+    "mocha": "^7.1.0"
   }
 }
