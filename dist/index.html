@@ -65,18 +65,23 @@
 
             function generateRandomKey(){
                 $('#aesKey').val(
-                    Math.random().toString(36).substring(2, 16)
+                    sfet.aes.generateKey()
+                );
+            }
+
+            function generateIv() {
+                $('#aesIv').val(
+                    sfet.aes.generateIv()
                 );
             }
 
             function encryptAESText() {
                 var key = $('#aesKey').val();
-                if (!key || !key.length > 0){
-                    return toastr.error('Cannot use AES encryption without key')
-                }
+                var iv = $('#aesIv').val();
+                if (iv.length == 0) iv = null;
                 var plaintext = $('#aesPlaintext').val();
                 try {
-                    var encrypted = sfet.aes.encrypt(key, plaintext);
+                    var encrypted = sfet.aes.encrypt(key, plaintext, iv);
                     $('#aesEncryptedText').val(encrypted);
                     toastr.success('AES encryption successful');
                 } catch (error){
@@ -86,12 +91,11 @@
 
             function decryptAESText() {
                 var key = $('#aesKey').val();
-                if (!key || !key.length > 0){
-                    return toastr.error('Cannot use AES encryption without key')
-                }
+                var iv = $('#aesIv').val();
+                if (iv.length == 0) iv = null;
                 var encrypted = $('#aesEncryptedText').val();
                 try {
-                    var decrypted = sfet.aes.decrypt(key, encrypted);
+                    var decrypted = sfet.aes.decrypt(key, encrypted, iv);
                     $('#aesPlaintext').val(decrypted);
                     toastr.success('AES decryption successful');
                 } catch (error){
@@ -115,9 +119,8 @@
 
             function encryptAESFile(){
                 var key = $('#aesKey').val();
-                if (!key || key.length == 0){
-                    return toastr.error('Cannot use AES encryption without key')
-                }
+                var iv = $('#aesIv').val();
+                if (iv.length == 0) iv = null;
                 var filename = $('#aesSourceFile').val();
                 if (!filename || filename.length == 0){
                     return toastr.error('Source file must be specified');
@@ -138,7 +141,7 @@
                     try {
                         $('#aesResultFile').attr(
                             'href',
-                            metadata + sfet.aes.encrypt(key, content)
+                            metadata + sfet.aes.encrypt(key, content, iv)
                         );
 
                         // get filename from (fake) full path
@@ -161,9 +164,8 @@
 
             function decryptAESFile(){
                 var key = $('#aesKey').val();
-                if (!key || !key.length > 0){
-                    return toastr.error('Cannot use AES decryption without key')
-                }
+                var iv = $('#aesIv').val();
+                if (iv.length == 0) iv = null;
                 var filename = $('#aesSourceFile').val();
                 if (!filename || filename.length == 0){
                     return toastr.error('Source file must be specified');
@@ -184,7 +186,7 @@
                     try {
                         $('#aesResultFile').attr(
                             'href',
-                            metadata + sfet.aes.decrypt(key, content)
+                            metadata + sfet.aes.decrypt(key, content, iv)
                         );
 
                         // get filename from (fake) full path
@@ -264,6 +266,19 @@
             will be able to use that secret to encrypt and decrypt communication with AES.
         <br />
         <br />
+        <b><u>Important Quirks</u></b>:
+        <br />
+            The AES secret must be a 32 character string. If the string is of a different length, it will be
+            hashed using the MD5 algorithm to produce a string of the correct length.
+            <br />
+            <br />        
+            The IV, or Initialization Vector, is a 16 character string that's required by the AES algorithm
+            (<a href="https://crypto.stackexchange.com/questions/3965/what-is-the-main-difference-between-a-key-an-iv-and-a-nonce" target="_blank">read this for a detailed explanation</a>).
+            It's not really necessary when encryption secrets aren't being reused, but as it's enforced by
+            the underlying crypto package it's recommended to include it. If you do choose to leave it out,
+            a default IV of '0000000000000000' will be used.
+        <br />
+        <br />
         <b><u>File Encryption</u></b>:
         <br />
             If your browser supports it, you will be able to encrypt and decrypt files from this interface.
@@ -332,8 +347,15 @@
         </div>
         <table>
                 <tr>
+                    <td align="right">Key: <input id="aesKey" /></td>
+                    <td align="left"><button onclick="generateRandomKey()">Generate random key</button>
+                </tr>
+                <tr>
+                    <td align="right">IV: <input id="aesIv" /></td>
+                    <td align="left"><button onclick="generateIv()">Generate IV</button></td>
+                </tr>
+                <tr>
                     <td colspan="2" align="center">
-                        Key: <input id="aesKey" /> <button onclick="generateRandomKey()">Generate random key</button>
                         <div id="aesSelectorDiv"></div>
                     </td>
                 </tr>
