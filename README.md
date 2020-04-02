@@ -9,9 +9,9 @@ Latest client version be loaded directly from the GitHub repo [here](http://html
 ## Encryption 101
 RSA encryption operates on a very limited string length, it is generally used to asymmetrically encrypt a shared secret that in turn is used for symmetric encryption. The standard use-case is to generate a random shared secret and transmit it encrypted with the destination's public RSA key. Once the destination has decrypted the shared secret with its private RSA key both sides will be able to use that secret to encrypt and decrypt communication with AES.
 
-## Important Quirks
-The AES secret must be a 32 character string. If the string is of a different length, it will be hashed using the MD5 algorithm to create a
-string of the correct length.
+## Important Notes
+The AES secret must be a 32 character string. In order to ensure a valid string, the secret is hashed using the MD5 algorithm to produce
+a string of the correct length.
 
 The IV, or Initialization Vector, is a 16 character hexadecimal string that's required by the AES algorithm ([read this](https://crypto.stackexchange.com/questions/3965/what-is-the-main-difference-between-a-key-an-iv-and-a-nonce) for a detailed explanation). It's not really necessary when
 encryption secrets aren't being reused, but as it's enforced by the underlying crypto package it's recommended to include it. If you do choose

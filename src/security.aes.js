@@ -13,7 +13,7 @@ var aes = {
     encrypt: function (key, message, iv) {
         iv = iv || aes.NULL_IV;
         aes.validateKey(key);
-        if (key.length != 32) key = md5.hash(key);
+        key = md5.hash(key);
         aes.validateIv(iv);
         key = Buffer.from(key);
 		var cipher = crypto.createCipheriv(aes.algorithm, key, iv);
@@ -23,7 +23,7 @@ var aes = {
     decrypt: function (key, message, iv) {
         iv = iv || aes.NULL_IV;
         aes.validateKey(key);
-        if (key.length != 32) key = md5.hash(key);
+        key = md5.hash(key);
         aes.validateIv(iv);
         key = Buffer.from(key);
         var decipher = crypto.createDecipheriv(aes.algorithm, key, iv);
