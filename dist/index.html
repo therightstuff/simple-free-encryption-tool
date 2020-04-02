@@ -272,7 +272,7 @@
             hashed using the MD5 algorithm to produce a string of the correct length.
             <br />
             <br />        
-            The IV, or Initialization Vector, is a 16 character string that's required by the AES algorithm
+            The IV, or Initialization Vector, is a 16 character hexadecimal string that's required by the AES algorithm
             (<a href="https://crypto.stackexchange.com/questions/3965/what-is-the-main-difference-between-a-key-an-iv-and-a-nonce" target="_blank">read this for a detailed explanation</a>).
             It's not really necessary when encryption secrets aren't being reused, but as it's enforced by
             the underlying crypto package it's recommended to include it. If you do choose to leave it out,

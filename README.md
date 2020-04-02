@@ -13,7 +13,7 @@ RSA encryption operates on a very limited string length, it is generally used to
 The AES secret must be a 32 character string. If the string is of a different length, it will be hashed using the MD5 algorithm to create a
 string of the correct length.
 
-The IV, or Initialization Vector, is a 16 character string that's required by the AES algorithm ([read this](https://crypto.stackexchange.com/questions/3965/what-is-the-main-difference-between-a-key-an-iv-and-a-nonce) for a detailed explanation). It's not really necessary when
+The IV, or Initialization Vector, is a 16 character hexadecimal string that's required by the AES algorithm ([read this](https://crypto.stackexchange.com/questions/3965/what-is-the-main-difference-between-a-key-an-iv-and-a-nonce) for a detailed explanation). It's not really necessary when
 encryption secrets aren't being reused, but as it's enforced by the underlying crypto package it's recommended to include it. If you do choose
 to leave it out, a default IV of '0000000000000000' will be used.
 
