@@ -1,13 +1,14 @@
-﻿var crypto = require('crypto');
-var childProcess = require('child_process');
-var keyGenerator = require('./keyGenerator');
-var path = require('path');
+﻿const crypto = require('crypto');
+const childProcess = require('child_process');
+const keyGenerator = require('./keyGenerator');
+const NodeRSA = require('node-rsa');
+const path = require('path');
 
-var rsa = {
+let rsa = {
     // both parameters must be strings, publicKey PEM formatted
     encrypt: function (publicKey, message) {
-        var buffer = new Buffer(message);
-        encrypted = crypto.publicEncrypt(
+        let buffer = Buffer.from(message);
+        let encrypted = crypto.publicEncrypt(
             {
                 key: publicKey,
                 padding: crypto.constants.RSA_PKCS1_PADDING
@@ -19,8 +20,8 @@ var rsa = {
 
     // both parameters must be strings, publicKey PEM formatted
     decrypt: function (privateKey, message) {
-        var buffer = new Buffer(message, 'base64');
-        var decrypted = crypto.privateDecrypt(
+        let buffer = Buffer.from(message, 'base64');
+        let decrypted = crypto.privateDecrypt(
             {
                 key: privateKey,
                 padding: crypto.constants.RSA_PKCS1_PADDING
@@ -37,7 +38,7 @@ var rsa = {
             throw new Error('generateKeys called without callback function');
         }
         // spawn child keyGenerator process, forward results to next
-        var command = path.resolve(__dirname + '/keyGenerator.js');
+        let command = path.resolve(__dirname + '/keyGenerator.js');
         childProcess.execFile('node', [command, keySize], function (error, stdout, stderr){
             if (error){
                 next(error);
@@ -49,11 +50,21 @@ var rsa = {
 
     // generate PEM formatted public / private key pair synchronously
     generateKeysSync: function(keySize, next){
-        var generatedKeys = keyGenerator(keySize);
+        let generatedKeys = keyGenerator(keySize);
         if (next){
             next(null, generatedKeys);
         }
         return generatedKeys;
+    },
+
+    sign: function(privateKey, message) {
+        let key = new NodeRSA(privateKey);
+        return key.sign(message).toString('base64');
+    },
+
+    verify: function(publicKey, message, signature) {
+        let key = new NodeRSA(publicKey);
+        return key.verify(message, Buffer.from(signature, 'base64'));
     }
 };
 

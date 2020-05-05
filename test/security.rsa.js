@@ -2,13 +2,13 @@ const assert = require('assert');
 const rsa = require('../src/security.rsa');
 
 describe('rsa', function() {
-    var plaintext = "plaintext";
-    var defaultKeySize = 2048;
+    let plaintext = "plaintext";
+    let defaultKeySize = 2048;
 
     describe('synchronously generated key pair tests', function(){
-        var generatedKeyPair = rsa.generateKeysSync();
-        var encrypted = rsa.encrypt(generatedKeyPair.public, plaintext);
-    
+        let generatedKeyPair = rsa.generateKeysSync();
+        let encrypted = rsa.encrypt(generatedKeyPair.public, plaintext);
+
         describe('generates 2048-bit public / private key pair', function() {
             it('should generate result with keySize, time, public and private keys', function() {
                 assert.equal(generatedKeyPair.hasOwnProperty("keySize"), true);
@@ -17,22 +17,35 @@ describe('rsa', function() {
                 assert.equal(generatedKeyPair.hasOwnProperty("private"), true);
             });
         });
-    
+
         describe('rsa.encrypt(publicKey, plaintext) != plaintext', function() {
             it('returns encrypted text different from plaintext', function() {
                 assert.notEqual(encrypted, plaintext);
             });
         });
-    
+
         describe('rsa.encrypt(publicKey, plaintext) updates each time', function() {
             it('returns re-encrypted text different from previous attempt', function() {
                 assert.notEqual(rsa.encrypt(generatedKeyPair.public, plaintext), encrypted);
             });
         });
-    
+
         describe('rsa.decrypt(privateKey, encrypted) == plaintext', function() {
             it('returns correctly decrypted plaintext', function() {
                 assert.equal(rsa.decrypt(generatedKeyPair.private, encrypted), plaintext);
+            });
+        });
+
+        describe('rsa.sign and rsa.verify are symmetric', function() {
+            it('returns whether signature is verified', function() {
+                assert.equal(
+                    rsa.verify(
+                        generatedKeyPair.public,
+                        plaintext,
+                        rsa.sign(generatedKeyPair.private, plaintext)
+                    ),
+                    true
+                )
             });
         });
     });

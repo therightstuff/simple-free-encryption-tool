@@ -2,17 +2,17 @@ const assert = require('assert');
 const aes = require('../src/security.aes');
 
 describe('aes', function() {
-    var secret = "my secret";
-    var plaintext = "plaintext";
-    
-    var correctIv = "thisisacorrectiv";
-    var incorrectIv = "notyourcorrectiv";
-    var invalidIv = "invalidiv";
-    
-    var encrypted = aes.encrypt(secret, plaintext, correctIv);
-    var encryptedWithOtherIv = aes.encrypt(secret, plaintext, incorrectIv);
-    var encryptedWithNullIv = aes.encrypt(secret, plaintext);
-    var expectedEncrypted = "QHYtdyk+N7++AMlapdOjdw==";
+    let secret = "my secret";
+    let plaintext = "plaintext";
+
+    let correctIv = "thisisacorrectiv";
+    let incorrectIv = "notyourcorrectiv";
+    let invalidIv = "invalidiv";
+
+    let encrypted = aes.encrypt(secret, plaintext, correctIv);
+    let encryptedWithOtherIv = aes.encrypt(secret, plaintext, incorrectIv);
+    let encryptedWithNullIv = aes.encrypt(secret, plaintext);
+    let expectedEncrypted = "QHYtdyk+N7++AMlapdOjdw==";
 
     describe('aes.encrypt encrypts correctly', function() {
         it('returns encrypted text different from plaintext', function() {
@@ -55,7 +55,7 @@ describe('aes', function() {
             }, (err) => err.message === aes.INVALID_KEY_ERROR)
         });
     });
-    
+
     describe('aes.decrypt handles invalid values', function() {
         it('throw an error on invalid iv', function() {
             assert.throws(() => {
@@ -78,5 +78,5 @@ describe('aes', function() {
       it('returns md5 hash', function() {
           assert.equal(aes.generateKey().length, 32);
       });
-    });  
+    });
 });

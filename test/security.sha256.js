@@ -1,20 +1,20 @@
 const assert = require('assert');
-const md5 = require('../src/security.md5');
+const sha256 = require('../src/security.sha256');
 
-describe('md5', function() {
+describe('sha256', function() {
     let plaintext = "plaintext";
-    let expectedHash = "f2bc5b1d869870d7688f71b2d87030bd";
+    let expectedHash = "96d62e2abd3e42de5f50330fb8efc4c5599835278077b21e9aa0b33c1df07a1c";
 
-    describe('md5.hash(plaintext) = expectedHash', function() {
+    describe('sha256.hash(plaintext) = expectedHash', function() {
         it('should return expected hash for plaintext', function() {
-            assert.equal(md5.hash(plaintext), expectedHash);
+            assert.equal(sha256.hash(plaintext), expectedHash);
         });
     });
 
-    describe('md5.hash() throws error', function() {
+    describe('sha256.hash() throws error', function() {
         it('throws an error on null value', function() {
             assert.throws(() => {
-                md5.hash();
+                sha256.hash();
             }, (err) => err.message === 'The "data" argument must be one of type string, Buffer, TypedArray, or DataView. Received type undefined')
         });
     });

@@ -28862,19 +28862,17 @@ exports.createContext = Script.createContext = function (context) {
 "use strict";
 // module and stand-alone application that generates a PEM formatted RSA key pair
 
-var NodeRSA = require('node-rsa');
+const NodeRSA = require('node-rsa');
 
-var constants = {
-    DEFAULT_KEY_SIZE: 2048
-};
+const DEFAULT_KEY_SIZE = 2048;
 
 const isStandAlone = (process.argv[1] && process.argv[1].indexOf('keyGenerator.js') !== -1);
 
 function generateKeys(keySize) {
-    keySize = keySize || constants.DEFAULT_KEY_SIZE;
-    var dt = new Date();
-    var time = -(dt.getTime());
-    var key = new NodeRSA({ b: keySize });
+    keySize = keySize || DEFAULT_KEY_SIZE;
+    let dt = new Date();
+    let time = -(dt.getTime());
+    let key = new NodeRSA({ b: keySize });
     dt = new Date();
     // time taken to generate keys
     time += (dt.getTime());
@@ -28896,14 +28894,14 @@ if (isStandAlone){
 }).call(this,require('_process'))
 },{"_process":148,"node-rsa":119}],192:[function(require,module,exports){
 (function (Buffer){
-var crypto = require('crypto');
-var md5 = require('./security.md5');
+const crypto = require('crypto');
+const md5 = require('./security.md5');
 
-var randomstring = require('randomstring');
+const randomstring = require('randomstring');
 
 // http://lollyrock.com/articles/nodejs-encryption/
 // NOTE: aes-256-cbc is compatible with the .NET crypto package
-var aes = {
+let aes = {
     INVALID_IV_ERROR: "Invalid iv, 16-character string required",
     INVALID_KEY_ERROR: "Invalid key, 32-character string required",
     NULL_IV: "0000000000000000",
@@ -28914,7 +28912,7 @@ var aes = {
         key = md5.hash(key);
         aes.validateIv(iv);
         key = Buffer.from(key);
-		var cipher = crypto.createCipheriv(aes.algorithm, key, iv);
+		let cipher = crypto.createCipheriv(aes.algorithm, key, iv);
         return cipher.update(message, 'utf8', 'base64') + cipher.final('base64');
 	},
 
@@ -28924,7 +28922,7 @@ var aes = {
         key = md5.hash(key);
         aes.validateIv(iv);
         key = Buffer.from(key);
-        var decipher = crypto.createDecipheriv(aes.algorithm, key, iv);
+        let decipher = crypto.createDecipheriv(aes.algorithm, key, iv);
         return decipher.update(message, 'base64', 'utf8') + decipher.final('utf8');
     },
 
@@ -28951,9 +28949,9 @@ var aes = {
 module.exports = aes;
 }).call(this,require("buffer").Buffer)
 },{"./security.md5":193,"buffer":59,"crypto":68,"randomstring":157}],193:[function(require,module,exports){
-var crypto = require('crypto');
+const crypto = require('crypto');
 
-var md5 = {
+let md5 = {
 	hash: function (message) {
 		return crypto.createHash('md5').update(message).digest("hex");
 	}
@@ -28962,16 +28960,17 @@ var md5 = {
 module.exports = md5;
 },{"crypto":68}],194:[function(require,module,exports){
 (function (Buffer,__dirname){
-var crypto = require('crypto');
-var childProcess = require('child_process');
-var keyGenerator = require('./keyGenerator');
-var path = require('path');
+const crypto = require('crypto');
+const childProcess = require('child_process');
+const keyGenerator = require('./keyGenerator');
+const NodeRSA = require('node-rsa');
+const path = require('path');
 
-var rsa = {
+let rsa = {
     // both parameters must be strings, publicKey PEM formatted
     encrypt: function (publicKey, message) {
-        var buffer = new Buffer(message);
-        encrypted = crypto.publicEncrypt(
+        let buffer = Buffer.from(message);
+        let encrypted = crypto.publicEncrypt(
             {
                 key: publicKey,
                 padding: crypto.constants.RSA_PKCS1_PADDING
@@ -28983,8 +28982,8 @@ var rsa = {
 
     // both parameters must be strings, publicKey PEM formatted
     decrypt: function (privateKey, message) {
-        var buffer = new Buffer(message, 'base64');
-        var decrypted = crypto.privateDecrypt(
+        let buffer = Buffer.from(message, 'base64');
+        let decrypted = crypto.privateDecrypt(
             {
                 key: privateKey,
                 padding: crypto.constants.RSA_PKCS1_PADDING
@@ -29001,7 +29000,7 @@ var rsa = {
             throw new Error('generateKeys called without callback function');
         }
         // spawn child keyGenerator process, forward results to next
-        var command = path.resolve(__dirname + '/keyGenerator.js');
+        let command = path.resolve(__dirname + '/keyGenerator.js');
         childProcess.execFile('node', [command, keySize], function (error, stdout, stderr){
             if (error){
                 next(error);
@@ -29013,33 +29012,53 @@ var rsa = {
 
     // generate PEM formatted public / private key pair synchronously
     generateKeysSync: function(keySize, next){
-        var generatedKeys = keyGenerator(keySize);
+        let generatedKeys = keyGenerator(keySize);
         if (next){
             next(null, generatedKeys);
         }
         return generatedKeys;
+    },
+
+    sign: function(privateKey, message) {
+        let key = new NodeRSA(privateKey);
+        return key.sign(message).toString('base64');
+    },
+
+    verify: function(publicKey, message, signature) {
+        let key = new NodeRSA(publicKey);
+        return key.verify(message, Buffer.from(signature, 'base64'));
     }
 };
 
 module.exports = rsa;
 }).call(this,require("buffer").Buffer,"/src")
-},{"./keyGenerator":191,"buffer":59,"child_process":57,"crypto":68,"path":141}],195:[function(require,module,exports){
+},{"./keyGenerator":191,"buffer":59,"child_process":57,"crypto":68,"node-rsa":119,"path":141}],195:[function(require,module,exports){
+const crypto = require('crypto');
+
+let sha256 = {
+	hash: function (message) {
+		return crypto.createHash('sha256').update(message).digest("hex");
+	}
+};
+
+module.exports = sha256;
+},{"crypto":68}],196:[function(require,module,exports){
 "use strict";
 
 /*
 	The node.js modules to be ported to the client must be added
 	to the window.cryptoport object.
 
-    "npm build" must be run after updating this module
+    "npm run build" must be run after updating this module
 
     Once bundle has been included in html page with following directive
         <script src="windowSfet.js"></script>
     javascript calls can be made to sfet.* eg
-        var encrypted = sfet.aes.encrypt('secret', 'text to be encrypted');
+        let encrypted = sfet.aes.encrypt('secret', 'text to be encrypted');
 */
 
 // add required constants to crypto
-var crypto = require('crypto');
+const crypto = require('crypto');
 crypto.constants = {
     RSA_PKCS1_PADDING: 1
 };
@@ -29049,7 +29068,8 @@ window.sfet = {
     aes: require('./security.aes'),
     crypto: crypto,
     md5: require('./security.md5'),
-    rsa: require('./security.rsa')
+    rsa: require('./security.rsa'),
+    sha256: require('./security.sha256')
 };
 
-},{"./security.aes":192,"./security.md5":193,"./security.rsa":194,"crypto":68}]},{},[195]);
+},{"./security.aes":192,"./security.md5":193,"./security.rsa":194,"./security.sha256":195,"crypto":68}]},{},[196]);

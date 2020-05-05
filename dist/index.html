@@ -4,7 +4,7 @@
         <link rel="stylesheet" href="css/toastr.min.css" />
 
         <script src="js/jquery-3.1.1.min.js"></script>
-        
+
         <script src="js/windowSfet.js"></script>
 
         <script src="js/toastr.min.js"></script>
@@ -13,10 +13,17 @@
             var keys = {};
 
             function hashMD5(){
-                var plaintext = $('#md5Plaintext').val();
-                var hash = sfet.md5.hash(plaintext);
+                let plaintext = $('#md5Plaintext').val();
+                let hash = sfet.md5.hash(plaintext);
                 $('#md5Hash').val(hash);
                 toastr.success('MD5 hash generated');
+            }
+
+            function hashSHA256(){
+                let plaintext = $('#sha256Plaintext').val();
+                let hash = sfet.sha256.hash(plaintext);
+                $('#sha256Hash').val(hash);
+                toastr.success('SHA-256 hash generated');
             }
 
             function generateKeys(){
@@ -39,9 +46,9 @@
                 if (!keys || !keys.public || keys.public.length == 0){
                     return toastr.error('RSA Public Key required');
                 }
-                var plaintext = $('#rsaPlaintext').val();
+                let plaintext = $('#rsaPlaintext').val();
                 try {
-                    var encrypted = sfet.rsa.encrypt(keys.public, plaintext);
+                    let encrypted = sfet.rsa.encrypt(keys.public, plaintext);
                     $('#rsaEncryptedText').val(encrypted);
                     toastr.success('RSA encryption successful');
                 } catch (error){
@@ -53,11 +60,40 @@
                 if (!keys || !keys.private || keys.private.length == 0){
                     return toastr.error('RSA Private Key required');
                 }
-                var encrypted = $('#rsaEncryptedText').val();
+                let encrypted = $('#rsaEncryptedText').val();
                 try {
-                    var decrypted = sfet.rsa.decrypt(keys.private, encrypted);
+                    let decrypted = sfet.rsa.decrypt(keys.private, encrypted);
                     $('#rsaPlaintext').val(decrypted);
                     toastr.success('RSA decryption successful');
+                } catch (error){
+                    toastr.error(error.message);
+                }
+            }
+
+            function signRSA() {
+                if (!keys || !keys.private || keys.private.length == 0){
+                    return toastr.error('RSA Private Key required');
+                }
+                let plaintext = $('#rsaPlaintext').val();
+                try {
+                    let signature = sfet.rsa.sign(keys.private, plaintext);
+                    $('#rsaSignature').val(signature);
+                    toastr.success('Unencrypted text signed successfully');
+                } catch (error){
+                    toastr.error(error.message);
+                }
+            }
+
+            function verifyRSA() {
+                if (!keys || !keys.public || keys.public.length == 0){
+                    return toastr.error('RSA Public Key required');
+                }
+                let plaintext = $('#rsaPlaintext').val();
+                let signature = $('#rsaSignature').val();
+                try {
+                    let verified = sfet.rsa.verify(keys.public, plaintext, signature);
+                    $('#rsaVerified').text(verified);
+                    toastr.success('Signature verified successfully');
                 } catch (error){
                     toastr.error(error.message);
                 }
@@ -76,12 +112,12 @@
             }
 
             function encryptAESText() {
-                var key = $('#aesKey').val();
-                var iv = $('#aesIv').val();
+                let key = $('#aesKey').val();
+                let iv = $('#aesIv').val();
                 if (iv.length == 0) iv = null;
-                var plaintext = $('#aesPlaintext').val();
+                let plaintext = $('#aesPlaintext').val();
                 try {
-                    var encrypted = sfet.aes.encrypt(key, plaintext, iv);
+                    let encrypted = sfet.aes.encrypt(key, plaintext, iv);
                     $('#aesEncryptedText').val(encrypted);
                     toastr.success('AES encryption successful');
                 } catch (error){
@@ -90,12 +126,12 @@
             }
 
             function decryptAESText() {
-                var key = $('#aesKey').val();
-                var iv = $('#aesIv').val();
+                let key = $('#aesKey').val();
+                let iv = $('#aesIv').val();
                 if (iv.length == 0) iv = null;
-                var encrypted = $('#aesEncryptedText').val();
+                let encrypted = $('#aesEncryptedText').val();
                 try {
-                    var decrypted = sfet.aes.decrypt(key, encrypted, iv);
+                    let decrypted = sfet.aes.decrypt(key, encrypted, iv);
                     $('#aesPlaintext').val(decrypted);
                     toastr.success('AES decryption successful');
                 } catch (error){
@@ -104,7 +140,7 @@
             }
 
             function showAesSelectedOptions(){
-                var selected = $('#aesSelector').val();
+                let selected = $('#aesSelector').val();
                 switch (selected){
                     case "file":
                         $('.aesTextOptions').hide();
@@ -113,15 +149,15 @@
                     case "text":
                         $('.aesTextOptions').show();
                         $('.aesFileOptions').hide();
-                        break;    
+                        break;
                 }
             }
 
             function encryptAESFile(){
-                var key = $('#aesKey').val();
-                var iv = $('#aesIv').val();
+                let key = $('#aesKey').val();
+                let iv = $('#aesIv').val();
                 if (iv.length == 0) iv = null;
-                var filename = $('#aesSourceFile').val();
+                let filename = $('#aesSourceFile').val();
                 if (!filename || filename.length == 0){
                     return toastr.error('Source file must be specified');
                 }
@@ -129,14 +165,14 @@
                 $('#aesResultFile').hide();
 
                 // load file contents into base64
-                var reader = new FileReader();
-                var file = $('#aesSourceFile')[0].files[0];
+                let reader = new FileReader();
+                let file = $('#aesSourceFile')[0].files[0];
                 reader.readAsDataURL(file);
                 reader.onload = function () {
                     // strip metadata, encrypt the rest, then reattach
-                    var contentIndex = reader.result.indexOf('base64,') + 'base64'.length + 1;
-                    var metadata = reader.result.substr(0, contentIndex);
-                    var content = reader.result.substr(contentIndex);
+                    let contentIndex = reader.result.indexOf('base64,') + 'base64'.length + 1;
+                    let metadata = reader.result.substr(0, contentIndex);
+                    let content = reader.result.substr(contentIndex);
 
                     try {
                         $('#aesResultFile').attr(
@@ -145,7 +181,7 @@
                         );
 
                         // get filename from (fake) full path
-                        var strippedFilename = filename.replace(/^.*[\\\/]/, '');
+                        let strippedFilename = filename.replace(/^.*[\\\/]/, '');
                         $('#aesResultFile').attr(
                             'download',
                             strippedFilename + '.encrypted'
@@ -159,14 +195,14 @@
                 };
                 reader.onerror = function (error) {
                     return toastr.error(error);
-                };                
+                };
             }
 
             function decryptAESFile(){
-                var key = $('#aesKey').val();
-                var iv = $('#aesIv').val();
+                let key = $('#aesKey').val();
+                let iv = $('#aesIv').val();
                 if (iv.length == 0) iv = null;
-                var filename = $('#aesSourceFile').val();
+                let filename = $('#aesSourceFile').val();
                 if (!filename || filename.length == 0){
                     return toastr.error('Source file must be specified');
                 }
@@ -174,14 +210,14 @@
                 $('#aesResultFile').hide();
 
                 // load file contents into base64
-                var reader = new FileReader();
-                var file = $('#aesSourceFile')[0].files[0];
+                let reader = new FileReader();
+                let file = $('#aesSourceFile')[0].files[0];
                 reader.readAsDataURL(file);
                 reader.onload = function () {
                     // strip metadata, decrypt the rest, then reattach
-                    var contentIndex = reader.result.indexOf('base64,') + 'base64'.length + 1;
-                    var metadata = reader.result.substr(0, contentIndex);
-                    var content = reader.result.substr(contentIndex);
+                    let contentIndex = reader.result.indexOf('base64,') + 'base64'.length + 1;
+                    let metadata = reader.result.substr(0, contentIndex);
+                    let content = reader.result.substr(contentIndex);
 
                     try {
                         $('#aesResultFile').attr(
@@ -190,9 +226,9 @@
                         );
 
                         // get filename from (fake) full path
-                        var strippedFilename = filename.replace(/^.*[\\\/]/, '');
+                        let strippedFilename = filename.replace(/^.*[\\\/]/, '');
                         // remove '.encrypted' extension if it's there
-                        var encryptedExtensionIndex = strippedFilename.lastIndexOf('.encrypted');
+                        let encryptedExtensionIndex = strippedFilename.lastIndexOf('.encrypted');
                         if (encryptedExtensionIndex >= 0) {
                             strippedFilename = strippedFilename.substr(0, encryptedExtensionIndex);
                         }
@@ -209,7 +245,7 @@
                 };
                 reader.onerror = function (error) {
                     return toastr.error(error);
-                };                
+                };
             }
 
             // Call this code when the page is done loading.
@@ -264,6 +300,12 @@
             to generate a random shared secret and transmit it encrypted with the destination's public RSA
             key. Once the destination has decrypted the shared secret with its private RSA key both sides
             will be able to use that secret to encrypt and decrypt communication with AES.
+            <br />
+            <br />
+            Signing a message to prove authorship (and that it hasn't been tampered with) is performed on
+            the plaintext message, and the resulting signature can only be verified with the public key
+            matching the private key it was signed with. The padding for signing and verifying signatures
+            is not the same as for encrypting and decrypting messages.
         <br />
         <br />
         <b><u>Important Quirks</u></b>:
@@ -271,12 +313,15 @@
             The AES secret must be a 32 character string. In order to ensure a valid string, the secret is
             hashed using the MD5 algorithm to produce a string of the correct length.
             <br />
-            <br />        
+            <br />
             The IV, or Initialization Vector, is a 16 character hexadecimal string that's required by the AES algorithm
             (<a href="https://crypto.stackexchange.com/questions/3965/what-is-the-main-difference-between-a-key-an-iv-and-a-nonce" target="_blank">read this for a detailed explanation</a>).
             It's not really necessary when encryption secrets aren't being reused, but as it's enforced by
             the underlying crypto package it's recommended to include it. If you do choose to leave it out,
             a default IV of '0000000000000000' will be used.
+            <br />
+            <br />
+            Signing a message and verifying a signature with simple-free-encryption-tool is performed using the SHA-256 hashing algorithm.
         <br />
         <br />
         <b><u>File Encryption</u></b>:
@@ -296,6 +341,21 @@
             <tr>
                 <td><textarea id="md5Plaintext"></textarea></td>
                 <td><input id="md5Hash" size="40" style="text-align: center" /></td>
+            </tr>
+        </table>
+
+        <h2>SHA-256</h2>
+        <table>
+            <tr>
+                <td colspan="2" align="center"><button onclick="hashSHA256()">Hash!</button></td>
+            </tr>
+            <tr>
+                <td>Initial text</td>
+                <td>SHA-256 Hash</td>
+            </tr>
+            <tr>
+                <td><textarea id="sha256Plaintext"></textarea></td>
+                <td><input id="sha256Hash" size="40" style="text-align: center" /></td>
             </tr>
         </table>
 
@@ -335,6 +395,18 @@
                 <td><textarea id="rsaPlaintext"></textarea></td>
                 <td><textarea id="rsaEncryptedText"></textarea></td>
             </tr>
+            <tr>
+                <td align="center"><button onclick="signRSA()">Sign</button></td>
+                <td align="center"><button onclick="verifyRSA()">Verify</button></td>
+            </tr>
+            <tr>
+                <td>Signature</td>
+                <td>Verified</td>
+            </tr>
+            <tr>
+                <td><textarea id="rsaSignature"></textarea></td>
+                <td align="center" valign="middle"><div id="rsaVerified" align="center" valign="middle"></div></td>
+            </tr>
         </table>
 
         <h2>AES</h2>
@@ -368,7 +440,7 @@
                 </tr>
                 <tr class="aesFileOptions">
                     <td colspan="2">Result File: <a id="aesResultFile" href="data:application/octet-stream;charset=utf-8;base64,Zm9vIGJhcg==">Download Result</a></td>
-                </tr>    
+                </tr>
                 <tr class="aesTextOptions">
                     <td align="center"><button onclick="encryptAESText()">Encrypt</button></td>
                     <td align="center"><button onclick="decryptAESText()">Decrypt</button></td>
@@ -382,7 +454,7 @@
                     <td><textarea id="aesEncryptedText"></textarea></td>
                 </tr>
             </table>
-    
+
         </center>
     </body>
 </html>
