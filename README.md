@@ -115,5 +115,5 @@ console.log('aes decrypted ' + decrypted);
 
 C# counterparts available here:
 * RSA key importer / exporter: https://gist.github.com/therightstuff/aa65356e95f8d0aae888e9f61aa29414
-* RSA encrypt / decrypt: https://gist.github.com/therightstuff/4db89368887dba2fe8935b2fb329f5aa
+* RSA encrypt / decrypt / sign / verify: https://gist.github.com/therightstuff/4db89368887dba2fe8935b2fb329f5aa
 * AES encrypt / decrypt: https://gist.github.com/therightstuff/30e5cbd9b1e0de1b8865c8fb6e2971e4
