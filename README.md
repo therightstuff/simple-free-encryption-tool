@@ -19,7 +19,7 @@ The IV, or Initialization Vector, is a 16 character hexadecimal string that's re
 encryption secrets aren't being reused, but as it's enforced by the underlying crypto package it's recommended to include it. If you do choose
 to leave it out, a default IV of '0000000000000000' will be used.
 
-Signing a message and verifying a signature with simple-free-encryption-tool is performed using the SHA-256 hashing algorithm.
+Signing messages and verifying signatures with simple-free-encryption-tool are performed using the SHA-256 hashing algorithm.
 
 ## Installation
 ```
@@ -113,7 +113,7 @@ console.log('aes decrypted ' + decrypted);
 ```
 ## C# compatibility
 
-C# counterparts available here:
+C# counterparts available in the `/examples/csharp` folder as well as on gist:
 * RSA key importer / exporter: https://gist.github.com/therightstuff/aa65356e95f8d0aae888e9f61aa29414
 * RSA encrypt / decrypt / sign / verify: https://gist.github.com/therightstuff/4db89368887dba2fe8935b2fb329f5aa
 * AES encrypt / decrypt: https://gist.github.com/therightstuff/30e5cbd9b1e0de1b8865c8fb6e2971e4
