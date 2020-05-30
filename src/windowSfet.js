@@ -24,5 +24,6 @@ window.sfet = {
     crypto: crypto,
     md5: require('./security.md5'),
     rsa: require('./security.rsa'),
-    sha256: require('./security.sha256')
+    sha256: require('./security.sha256'),
+    utils: require('./utils')
 };

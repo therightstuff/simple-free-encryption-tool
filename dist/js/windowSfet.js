@@ -28896,8 +28896,7 @@ if (isStandAlone){
 (function (Buffer){
 const crypto = require('crypto');
 const md5 = require('./security.md5');
-
-const randomstring = require('randomstring');
+const utils = require('./utils');
 
 // http://lollyrock.com/articles/nodejs-encryption/
 // NOTE: aes-256-cbc is compatible with the .NET crypto package
@@ -28926,6 +28925,7 @@ let aes = {
         return decipher.update(message, 'base64', 'utf8') + decipher.final('utf8');
     },
 
+    // generated IV must be a 16 character hexadecimal string
     generateIv: function () {
         // https://stackoverflow.com/a/42485606/2860309
         // output eg. 2f6c60343819c193
@@ -28936,8 +28936,11 @@ let aes = {
             throw new Error(aes.INVALID_IV_ERROR);
         }
     },
+    // DEPRECATED: use sfet.utils.randomstring directly instead,
+    // no need to hash the result as hashing performed implicitly
+    // by encrypt / decrypt
 	generateKey: function () {
-		return md5.hash(randomstring.generate());
+		return md5.hash(utils.randomstring.generate());
     },
     validateKey: function(key) {
         if (!key) {
@@ -28948,7 +28951,7 @@ let aes = {
 
 module.exports = aes;
 }).call(this,require("buffer").Buffer)
-},{"./security.md5":193,"buffer":59,"crypto":68,"randomstring":157}],193:[function(require,module,exports){
+},{"./security.md5":193,"./utils":196,"buffer":59,"crypto":68}],193:[function(require,module,exports){
 const crypto = require('crypto');
 
 let md5 = {
@@ -29043,6 +29046,12 @@ let sha256 = {
 
 module.exports = sha256;
 },{"crypto":68}],196:[function(require,module,exports){
+let utils = {
+    randomstring: require('randomstring')
+};
+
+module.exports = utils;
+},{"randomstring":157}],197:[function(require,module,exports){
 "use strict";
 
 /*
@@ -29069,7 +29078,8 @@ window.sfet = {
     crypto: crypto,
     md5: require('./security.md5'),
     rsa: require('./security.rsa'),
-    sha256: require('./security.sha256')
+    sha256: require('./security.sha256'),
+    utils: require('./utils')
 };
 
-},{"./security.aes":192,"./security.md5":193,"./security.rsa":194,"./security.sha256":195,"crypto":68}]},{},[196]);
+},{"./security.aes":192,"./security.md5":193,"./security.rsa":194,"./security.sha256":195,"./utils":196,"crypto":68}]},{},[197]);

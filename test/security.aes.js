@@ -74,8 +74,9 @@ describe('aes', function() {
         });
   });
 
+  // DEPRECATED
   describe('aes.generateKey', function() {
-      it('returns md5 hash', function() {
+      it('returns 32-character randomly generated string', function() {
           assert.equal(aes.generateKey().length, 32);
       });
     });

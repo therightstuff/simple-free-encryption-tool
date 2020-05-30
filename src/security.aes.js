@@ -1,7 +1,6 @@
 ﻿const crypto = require('crypto');
 const md5 = require('./security.md5');
-
-const randomstring = require('randomstring');
+const utils = require('./utils');
 
 // http://lollyrock.com/articles/nodejs-encryption/
 // NOTE: aes-256-cbc is compatible with the .NET crypto package
@@ -30,6 +29,7 @@ let aes = {
         return decipher.update(message, 'base64', 'utf8') + decipher.final('utf8');
     },
 
+    // generated IV must be a 16 character hexadecimal string
     generateIv: function () {
         // https://stackoverflow.com/a/42485606/2860309
         // output eg. 2f6c60343819c193
@@ -40,8 +40,11 @@ let aes = {
             throw new Error(aes.INVALID_IV_ERROR);
         }
     },
+    // DEPRECATED: use sfet.utils.randomstring directly instead,
+    // no need to hash the result as hashing performed implicitly
+    // by encrypt / decrypt
 	generateKey: function () {
-		return md5.hash(randomstring.generate());
+		return md5.hash(utils.randomstring.generate());
     },
     validateKey: function(key) {
         if (!key) {
