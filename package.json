@@ -43,7 +43,7 @@
   },
   "homepage": "https://github.com/therightstuff/simple-free-encryption-tool#readme",
   "dependencies": {
-    "node-rsa": "^1.0.8",
+    "node-rsa": "^1.1.1",
     "randomstring": "^1.1.5"
   },
   "devDependencies": {

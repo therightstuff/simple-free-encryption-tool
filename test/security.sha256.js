@@ -13,9 +13,7 @@ describe('sha256', function() {
 
     describe('sha256.hash() throws error', function() {
         it('throws an error on null value', function() {
-            assert.throws(() => {
-                sha256.hash();
-            }, (err) => err.message === 'The "data" argument must be one of type string, Buffer, TypedArray, or DataView. Received type undefined')
+            assert.throws(sha256.hash, TypeError, 'The "data" argument must be one of type string, Buffer, TypedArray, or DataView. Received type undefined');
         });
     });
 });
