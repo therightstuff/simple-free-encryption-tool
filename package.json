@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "build": "npm run test && browserify src/windowSfet.js -o dist/js/windowSfet.js",
-    "test": "mocha"
+    "test": "mocha",
+    "package-upgrade": "npx npm-check-updates -u"
   },
   "repository": {
     "type": "git",
@@ -48,6 +49,6 @@
   },
   "devDependencies": {
     "browserify": "^16.5.1",
-    "mocha": "^8.0.1"
+    "mocha": "^8.1.0"
   }
 }

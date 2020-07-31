@@ -44,7 +44,7 @@ npm run build
 <script language="javascript">
         // Call this code when the page is done loading.
         $(function () {
-            alert('random 32 character string generated: ' + sfet.utils.randomstring(32));
+            alert('random 32 character string generated: ' + sfet.utils.randomstring.generate(32));
             alert('"secret md5 message" hashed: ' + sfet.md5.hash('secret md5 message'));
             alert('"secret sha256 message" hashed: ' + sfet.sha256.hash('secret sha256 message'));
 
@@ -83,7 +83,7 @@ npm run build
 ```javascript
 const sfet = require('simple-free-encryption-tool');
 
-console.log('random 32 character string generated: ' + sfet.utils.randomstring(32));
+console.log('random 32 character string generated: ' + sfet.utils.randomstring.generate(32));
 console.log('"secret md5 message" hashed: ' + sfet.md5.hash('secret md5 message'));
 console.log('"secret sha256 message" hashed: ' + sfet.sha256.hash('secret sha256 message'));
 
