@@ -48,7 +48,7 @@
     "randomstring": "^1.1.5"
   },
   "devDependencies": {
-    "browserify": "^16.5.1",
+    "browserify": "^16.5.2",
     "mocha": "^8.1.0"
   }
 }
