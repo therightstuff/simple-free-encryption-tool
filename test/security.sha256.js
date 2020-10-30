@@ -7,7 +7,7 @@ describe('sha256', function() {
 
     describe('sha256.hash(plaintext) = expectedHash', function() {
         it('should return expected hash for plaintext', function() {
-            assert.equal(sha256.hash(plaintext), expectedHash);
+            assert.strictEqual(sha256.hash(plaintext), expectedHash);
         });
     });
 

@@ -9,6 +9,7 @@ let aes = {
     INVALID_KEY_ERROR: "Invalid key, 32-character string required",
     NULL_IV: "0000000000000000",
     algorithm: 'aes-256-cbc',
+
     encrypt: function (key, message, iv) {
         iv = iv || aes.NULL_IV;
         aes.validateKey(key);

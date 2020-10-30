@@ -7,7 +7,7 @@ describe('md5', function() {
 
     describe('md5.hash(plaintext) = expectedHash', function() {
         it('should return expected hash for plaintext', function() {
-            assert.equal(md5.hash(plaintext), expectedHash);
+            assert.strictEqual(md5.hash(plaintext), expectedHash);
         });
     });
 

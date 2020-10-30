@@ -5,6 +5,8 @@ const NodeRSA = require('node-rsa');
 const path = require('path');
 
 let rsa = {
+    INVALID_CALL_WITHOUT_CALLBACK: 'generateKeys called without callback function',
+
     // both parameters must be strings, publicKey PEM formatted
     encrypt: function (publicKey, message) {
         let buffer = Buffer.from(message);
@@ -35,7 +37,7 @@ let rsa = {
     // (not available on web client)
     generateKeys: function (keySize, next) {
         if (!next){
-            throw new Error('generateKeys called without callback function');
+            throw new Error(rsa.INVALID_CALL_WITHOUT_CALLBACK);
         }
         // spawn child keyGenerator process, forward results to next
         let command = path.resolve(__dirname + '/keyGenerator.js');

@@ -36,6 +36,8 @@ npm test
 npm run build
 ```
 
+After running the tests, the coverage report will be available at [coverage/index.html](./coverage/index.html).
+
 ## Client
 
 ```html
