@@ -1,5 +1,7 @@
 # simple-free-encryption-tool
 
+[![Coverage Status](https://coveralls.io/repos/therightstuff/simple-free-encryption-tool/badge.svg?branch=master)](https://coveralls.io/r/therightstuff/simple-free-encryption-tool?branch=master)
+
 Simple Free RSA / AES Encryption and Decryption
 
 Simple Free Encryption Tool (sfet) uses RSA and AES versions that are strong and allow encryption between client-side Javascript, Node.js and C#.
