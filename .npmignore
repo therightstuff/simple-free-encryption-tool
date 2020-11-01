@@ -1,7 +1,0 @@
-# npm must include the bin folder but not the rest
-node_modules
-.vs*
-dist/*
-test/*
-.nyc_output
-coverage
