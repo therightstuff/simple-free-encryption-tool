@@ -53,7 +53,8 @@ After running the tests, the coverage report will be available at [coverage/inde
             alert('"secret sha256 message" hashed: ' + sfet.sha256.hash('secret sha256 message'));
 
             // asynchronous not available in browser, can be implemented using HTML5 Worker class
-            let keys = sfet.rsa.generateKeysSync();
+            let keySize = 2048;
+            let keys = sfet.rsa.generateKeysSync(keySize);
             alert('loaded in ' + keys.time);
 
             let encrypted = sfet.rsa.encrypt(keys.public, "secret rsa message");
@@ -91,7 +92,6 @@ console.log('random 32 character string generated: ' + sfet.utils.randomstring.g
 console.log('"secret md5 message" hashed: ' + sfet.md5.hash('secret md5 message'));
 console.log('"secret sha256 message" hashed: ' + sfet.sha256.hash('secret sha256 message'));
 
-// (key size defaults to 2048 if null)
 let keySize = 2048;
 
 // generateKeys() runs key generation in a separate child process

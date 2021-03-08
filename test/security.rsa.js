@@ -3,10 +3,11 @@ const rsa = require('../src/security.rsa');
 
 describe('rsa', function() {
     let plaintext = "plaintext";
-    let defaultKeySize = 2048;
+    let testKeySize = 2048;
+    let keyGenerationTimeout = testKeySize * 10;
 
     describe('synchronously generated key pair tests', function(){
-        let generatedKeyPair = rsa.generateKeysSync();
+        let generatedKeyPair = rsa.generateKeysSync(testKeySize);
         let encrypted = rsa.encrypt(generatedKeyPair.public, plaintext);
 
         describe('generates 2048-bit public / private key pair', function() {
@@ -15,6 +16,62 @@ describe('rsa', function() {
                 assert.strictEqual(generatedKeyPair.hasOwnProperty("time"), true);
                 assert.strictEqual(generatedKeyPair.hasOwnProperty("public"), true);
                 assert.strictEqual(generatedKeyPair.hasOwnProperty("private"), true);
+            });
+            it('throws an error when no keySize argument provided', function(done) {
+                let result = 'expected error, none thrown';
+                try {
+                    rsa.generateKeysSync();
+                } catch(err) {
+                    if (err.message === rsa.INVALID_CALL_WITHOUT_KEYSIZE) {
+                        return done();
+                    }
+                    result = err;
+                }
+                return done(new Error(result));
+            });
+            it('resolves with an error when no keySize provided', function(done) {
+                let result = 'expected error, none thrown';
+                try {
+                    rsa.generateKeysSync(null, (err) => {
+                        if (err) {
+                            if (err.message === rsa.INVALID_CALL_WITHOUT_KEYSIZE) {
+                                return done();
+                            }
+                            return done(new Error(err));
+                        }
+                        return done(new Error(result));
+                    });
+                } catch(err) {
+                    return done(err);
+                }
+            });
+            it('throws an error when invalid keySize argument provided', function(done) {
+                let result = 'expected error, none thrown';
+                try {
+                    rsa.generateKeysSync('asdf');
+                } catch(err) {
+                    if (err.message === rsa.INVALID_CALL_WITH_INVALID_KEYSIZE) {
+                        return done();
+                    }
+                    result = err;
+                }
+                return done(new Error(result));
+            });
+            it('resolves with an error when invalid keySize provided', function(done) {
+                let result = 'expected error, none thrown';
+                try {
+                    rsa.generateKeysSync('asdf', (err) => {
+                        if (err) {
+                            if (err.message === rsa.INVALID_CALL_WITH_INVALID_KEYSIZE) {
+                                return done();
+                            }
+                            return done(new Error(err));
+                        }
+                        return done(new Error(result));
+                    });
+                } catch(err) {
+                    return done(err);
+                }
             });
         });
 
@@ -52,25 +109,8 @@ describe('rsa', function() {
 
     describe('callback for synchronously generated key pair tests', function(){
         it('should generate result with keySize, time, public and private keys', function(done) {
-            this.timeout(10000);
-            rsa.generateKeysSync(defaultKeySize, (error, generatedKeyPair) => {
-                if (error) {
-                    done(error);
-                } else {
-                    assert.strictEqual(generatedKeyPair.hasOwnProperty("keySize"), true);
-                    assert.strictEqual(generatedKeyPair.hasOwnProperty("time"), true);
-                    assert.strictEqual(generatedKeyPair.hasOwnProperty("public"), true);
-                    assert.strictEqual(generatedKeyPair.hasOwnProperty("private"), true);
-                    done();
-                }
-            });
-        });
-    });
-
-    describe('asynchronously generated key pair tests', function(){
-        it('should generate result with keySize, time, public and private keys within 10s', function(done) {
-            this.timeout(10000);
-            rsa.generateKeys(defaultKeySize, (error, generatedKeyPair) => {
+            this.timeout(keyGenerationTimeout);
+            rsa.generateKeysSync(testKeySize, (error, generatedKeyPair) => {
                 if (error) {
                     done(error);
                 } else {
@@ -85,7 +125,68 @@ describe('rsa', function() {
         it('throws an error when no callback function provided', function(done) {
             let result = 'expected error, none thrown';
             try {
-                rsa.generateKeys(defaultKeySize);
+                rsa.generateKeys();
+            } catch(err) {
+                if (err.message === rsa.INVALID_CALL_WITHOUT_CALLBACK) {
+                    return done();
+                }
+                result = err;
+            }
+            return done(new Error(result));
+        });
+        it('resolves with an error when invalid keySize provided', function(done) {
+            let result = 'expected error, none thrown';
+            try {
+                rsa.generateKeys(null, (err) => {
+                    if (err) {
+                        if (err.message.indexOf(rsa.INVALID_CALL_WITH_INVALID_KEYSIZE) > 0) {
+                            return done();
+                        }
+                        return done(new Error(err));
+                    }
+                    return done(new Error(result));
+                });
+            } catch(err) {
+                return done(err);
+            }
+        });
+        it('resolves with an error when invalid keySize provided', function(done) {
+            let result = 'expected error, none thrown';
+            try {
+                rsa.generateKeys('asdf', (err) => {
+                    if (err) {
+                        if (err.message.indexOf(rsa.INVALID_CALL_WITH_INVALID_KEYSIZE) > 0) {
+                            return done();
+                        }
+                        return done(new Error(err));
+                    }
+                    return done(new Error(result));
+                });
+            } catch(err) {
+                return done(err);
+            }
+        });
+    });
+
+    describe('asynchronously generated key pair tests', function(){
+        it(`should generate result with keySize, time, public and private keys within ${keyGenerationTimeout}ms`, function(done) {
+            this.timeout(keyGenerationTimeout);
+            rsa.generateKeys(testKeySize, (error, generatedKeyPair) => {
+                if (error) {
+                    done(error);
+                } else {
+                    assert.strictEqual(generatedKeyPair.hasOwnProperty("keySize"), true);
+                    assert.strictEqual(generatedKeyPair.hasOwnProperty("time"), true);
+                    assert.strictEqual(generatedKeyPair.hasOwnProperty("public"), true);
+                    assert.strictEqual(generatedKeyPair.hasOwnProperty("private"), true);
+                    done();
+                }
+            });
+        });
+        it('throws an error when no callback function provided', function(done) {
+            let result = 'expected error, none thrown';
+            try {
+                rsa.generateKeys(testKeySize);
             } catch(err) {
                 if (err.message === rsa.INVALID_CALL_WITHOUT_CALLBACK) {
                     return done();

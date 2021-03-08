@@ -5,6 +5,8 @@ const NodeRSA = require('node-rsa');
 const path = require('path');
 
 let rsa = {
+    INVALID_CALL_WITHOUT_KEYSIZE: 'generateKeys called without keySize argument',
+    INVALID_CALL_WITH_INVALID_KEYSIZE: 'Key size must be a multiple of 8.',
     INVALID_CALL_WITHOUT_CALLBACK: 'generateKeys called without callback function',
 
     // both parameters must be strings, publicKey PEM formatted
@@ -52,11 +54,18 @@ let rsa = {
 
     // generate PEM formatted public / private key pair synchronously
     generateKeysSync: function(keySize, next){
-        let generatedKeys = keyGenerator(keySize);
-        if (next){
-            next(null, generatedKeys);
+        try {
+            let generatedKeys = keyGenerator(keySize);
+            if (next){
+                next(null, generatedKeys);
+            }
+            return generatedKeys;
+        } catch(err) {
+            if (next) {
+                return next(err);
+            }
+            throw err;
         }
-        return generatedKeys;
     },
 
     sign: function(privateKey, message) {
