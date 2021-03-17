@@ -7,7 +7,9 @@ Simple Free RSA / AES Encryption and Decryption
 Simple Free Encryption Tool (sfet) uses RSA and AES versions that are strong and allow encryption between client-side Javascript, Node.js and C#.
 
 Open and free for all to see, can be run stand-alone on a local machine for an extra sense of security; all functionality runs entirely locally once the page has been loaded.
+
 Latest client version be loaded directly from the GitHub repo [here](http://htmlpreview.github.io/?https://github.com/therightstuff/simple-free-encryption-tool/blob/master/dist/index.html).
+As that service hasn't been working lately (due to CORS issues, apparently), I've also made it available on [industrialcuriosity.com](https://industrialcuriosity.com/sfet).
 
 If you've found this tool useful, [please consider making a donation](https://www.industrialcuriosity.com/p/donate.html)!
 
