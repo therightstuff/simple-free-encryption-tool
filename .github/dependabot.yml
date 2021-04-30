@@ -5,12 +5,3 @@ updates:
   schedule:
     interval: daily
   open-pull-requests-limit: 10
-  ignore:
-  - dependency-name: mocha
-    versions:
-    - 8.3.0
-    - 8.3.1
-    - 8.3.2
-  - dependency-name: elliptic
-    versions:
-    - 6.5.4
