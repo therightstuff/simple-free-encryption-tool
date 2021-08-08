@@ -1,8 +1,8 @@
 # simple-free-encryption-tool
 
-[![Coverage Status](https://coveralls.io/repos/therightstuff/simple-free-encryption-tool/badge.svg?branch=master)](https://coveralls.io/r/therightstuff/simple-free-encryption-tool?branch=master)
+![](https://img.shields.io/badge/Coverage-100%25-83A603.svg?color=black&prefix=$coverage$)
 
-Simple Free RSA / AES Encryption and Decryption
+## Simple Free RSA / AES Encryption and Decryption
 
 Simple Free Encryption Tool (sfet) uses RSA and AES versions that are strong and allow encryption between client-side Javascript, Node.js and C#.
 
@@ -41,6 +41,8 @@ npm run build
 ```
 
 After running the tests, the coverage report will be available at [coverage/index.html](./coverage/index.html).
+
+The coverage badge will be updated automatically.
 
 ## Client
 
