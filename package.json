@@ -6,8 +6,6 @@
   "scripts": {
     "build": "npm run test && browserify src/windowSfet.js -o dist/js/windowSfet.js",
     "test": "nyc --reporter=html --reporter=text --reporter=json-summary mocha && coverage-badge-creator",
-    "coverage:badge": "coverage-badge-creator",
-    "coverage": "nyc report --reporter=text-lcov | coveralls",
     "package-upgrade": "npx npm-check-updates -u"
   },
   "repository": {
