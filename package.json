@@ -4,7 +4,7 @@
   "description": "Simple Free RSA / AES Encryption and Decryption",
   "main": "index.js",
   "scripts": {
-    "build": "npm run test && browserify src/windowSfet.js -o dist/js/windowSfet.js",
+    "build": "npm run test && browserify src/windowSfet.js -o dist/js/windowSfet.js && echo 'Build complete.'",
     "test": "nyc --reporter=html --reporter=text --reporter=json-summary mocha && coverage-badge-creator",
     "package-upgrade": "npx npm-check-updates -u"
   },
