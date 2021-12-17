@@ -23267,7 +23267,7 @@ module.exports={
   "_args": [
     [
       "elliptic@6.5.4",
-      "/Users/geek.neo/simple-free-encryption-tool"
+      "C:\\dev\\simple-free-encryption-tool"
     ]
   ],
   "_development": true,
@@ -23293,7 +23293,7 @@ module.exports={
   ],
   "_resolved": "https://registry.npmjs.org/elliptic/-/elliptic-6.5.4.tgz",
   "_spec": "6.5.4",
-  "_where": "/Users/geek.neo/simple-free-encryption-tool",
+  "_where": "C:\\dev\\simple-free-encryption-tool",
   "author": {
     "name": "Fedor Indutny",
     "email": "fedor@indutny.com"
