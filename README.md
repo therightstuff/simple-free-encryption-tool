@@ -1,6 +1,6 @@
 # simple-free-encryption-tool
 
-![](https://img.shields.io/badge/Coverage-100%25-83A603.svg?color=black&prefix=$coverage$)
+![Coverage Badge 100%](https://img.shields.io/badge/Coverage-100%25-83A603.svg?color=black&prefix=$coverage$)
 
 ## Simple Free RSA / AES Encryption and Decryption
 
@@ -134,6 +134,6 @@ console.log('aes decrypted ' + decrypted);
 
 C# counterparts available in the `/examples/csharp` folder as well as on gist:
 
-* RSA key importer / exporter: https://gist.github.com/therightstuff/aa65356e95f8d0aae888e9f61aa29414
-* RSA encrypt / decrypt / sign / verify: https://gist.github.com/therightstuff/4db89368887dba2fe8935b2fb329f5aa
-* AES encrypt / decrypt: https://gist.github.com/therightstuff/30e5cbd9b1e0de1b8865c8fb6e2971e4
+* [RSA key importer / exporter](https://gist.github.com/therightstuff/aa65356e95f8d0aae888e9f61aa29414)
+* [RSA encrypt / decrypt / sign / verify](https://gist.github.com/therightstuff/4db89368887dba2fe8935b2fb329f5aa)
+* [AES encrypt / decrypt](https://gist.github.com/therightstuff/30e5cbd9b1e0de1b8865c8fb6e2971e4)

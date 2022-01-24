@@ -31752,7 +31752,6 @@ module.exports = exports = Charset;
 },{"array-uniq":1}],194:[function(require,module,exports){
 "use strict";
 
-var crypto = require('crypto');
 var randomBytes = require('randombytes');
 var Charset = require('./charset.js');
 
@@ -31778,7 +31777,7 @@ function processString(buf, initialString, chars, reqLen, maxByte) {
 }
 
 function getAsyncString(string, chars, length, maxByte, cb) {
-  crypto.randomBytes(length, function(err, buf) {
+  randomBytes(length, function(err, buf) {
     if (err) {
       // Since it is waiting for entropy, errors are legit and we shouldn't just keep retrying
       cb(err);
@@ -31844,7 +31843,7 @@ exports.generate = function(options, cb) {
 
 };
 
-},{"./charset.js":193,"crypto":85,"randombytes":195}],195:[function(require,module,exports){
+},{"./charset.js":193,"randombytes":195}],195:[function(require,module,exports){
 (function (process,global,Buffer){(function (){
 'use strict'
 
