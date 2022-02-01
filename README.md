@@ -1,6 +1,6 @@
 # simple-free-encryption-tool
 
-![Coverage Badge 100%](https://img.shields.io/badge/Coverage-100%25-83A603.svg?color=black&prefix=$coverage$)
+![Coverage Badge 100%](https://img.shields.io/badge/Coverage-100%25-83A603.svg?color=black&prefix=![](https://img.shields.io/badge/Coverage-100%25-83A603.svg?color=black&prefix=$coverage$))
 
 ## Simple Free RSA / AES Encryption and Decryption
 
