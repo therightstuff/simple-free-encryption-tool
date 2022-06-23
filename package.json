@@ -1,6 +1,6 @@
 {
   "name": "simple-free-encryption-tool",
-  "version": "2.0.7",
+  "version": "2.0.8",
   "description": "Simple Free RSA / AES Encryption and Decryption",
   "main": "index.js",
   "scripts": {
