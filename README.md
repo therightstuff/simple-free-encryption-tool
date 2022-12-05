@@ -1,6 +1,7 @@
 # simple-free-encryption-tool
 
 ![Coverage Badge 100%](https://img.shields.io/badge/Coverage-100%25-83A603.svg?color=black&prefix=![](https://img.shields.io/badge/Coverage-100%25-83A603.svg?color=black&prefix=$coverage$))
+[![Known Vulnerabilities](https://snyk.io/test/github/therightstuff/simple-free-encryption-tool/badge.svg)](https://snyk.io/test/github/therightstuff/simple-free-encryption-tool)
 
 ## Simple Free RSA / AES Encryption and Decryption
 
