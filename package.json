@@ -45,7 +45,7 @@
   "homepage": "https://github.com/therightstuff/simple-free-encryption-tool#readme",
   "dependencies": {
     "node-rsa": "^1.1.1",
-    "randomstring": "^1.2.3"
+    "randomstring": "^1.3.0"
   },
   "devDependencies": {
     "browserify": "^17.0.0",
