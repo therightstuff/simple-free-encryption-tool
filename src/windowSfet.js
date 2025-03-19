@@ -15,7 +15,7 @@
 // add required constants to crypto
 const crypto = require('crypto');
 crypto.constants = {
-    RSA_PKCS1_PADDING: 1
+    RSA_PKCS1_OAEP_PADDING: 4
 };
 
 // update the browser's sfet object

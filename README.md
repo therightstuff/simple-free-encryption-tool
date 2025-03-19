@@ -5,7 +5,9 @@
 
 ## Simple Free RSA / AES Encryption and Decryption
 
-Simple Free Encryption Tool (sfet) uses RSA and AES versions that are strong and allow encryption between client-side Javascript, Node.js and C#.
+Simple Free Encryption Tool (sfet) uses RSA and AES versions that are strong and allow encryption between client-side Javascript and Node.js.
+
+**NOTE**: Originally this package provided compatibility with C# as well, but that's no longer officially supported. If you're interested in seeing what that looked like, refer to [v2.0.14](https://github.com/therightstuff/simple-free-encryption-tool/tree/v2.0.14)
 
 Open and free for all to see, can be run stand-alone on a local machine for an extra sense of security; all functionality runs entirely locally once the page has been loaded.
 
@@ -130,11 +132,3 @@ encrypted = sfet.aes.encrypt('secret', 'secret aes message', iv)
 decrypted = sfet.aes.decrypt('secret', encrypted, iv);
 console.log('aes decrypted ' + decrypted);
 ```
-
-## C# compatibility
-
-C# counterparts available in the `/examples/csharp` folder as well as on gist:
-
-* [RSA key importer / exporter](https://gist.github.com/therightstuff/aa65356e95f8d0aae888e9f61aa29414)
-* [RSA encrypt / decrypt / sign / verify](https://gist.github.com/therightstuff/4db89368887dba2fe8935b2fb329f5aa)
-* [AES encrypt / decrypt](https://gist.github.com/therightstuff/30e5cbd9b1e0de1b8865c8fb6e2971e4)
