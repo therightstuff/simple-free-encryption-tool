@@ -15,7 +15,8 @@ let rsa = {
         let encrypted = crypto.publicEncrypt(
             {
                 key: publicKey,
-                padding: crypto.constants.RSA_PKCS1_OAEP_PADDING
+                padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+                oaepHash: 'sha256'
             },
             buffer
         );
@@ -28,7 +29,8 @@ let rsa = {
         let decrypted = crypto.privateDecrypt(
             {
                 key: privateKey,
-                padding: crypto.constants.RSA_PKCS1_OAEP_PADDING
+                padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+                oaepHash: 'sha256'
             },
             buffer
         );

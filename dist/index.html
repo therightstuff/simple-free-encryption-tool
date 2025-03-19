@@ -285,7 +285,7 @@
         <div style="width:500px;">
         <h1>Simple Free Encryption Tool</h1>
         <b>Simple Free Encryption Tool (sfet)</b> uses RSA and AES versions that are strong and allow
-        encryption between client-side Javascript, Node.js and C#.
+        encryption between client-side Javascript and Node.js.
         <br />
         <br />
         Open and free for all to see, can be run stand-alone for extra security,
@@ -366,12 +366,7 @@
 
         <h2>RSA</h2>
         <div>
-            RSA Keys generated with PKCS1 padding, OPENSSH PEM format is compatible with C#.
-            <br />
-            <ul>C# counterparts:
-                <li><a href="https://gist.github.com/therightstuff/aa65356e95f8d0aae888e9f61aa29414" target="_blank">key importer / exporter</a></li>
-                <li><a href="https://gist.github.com/therightstuff/4db89368887dba2fe8935b2fb329f5aa" target="_blank">encrypt / decrypt / sign / verify functions</a></li>
-            </ul>
+            RSA Keys are generated with PKCS1 OAEP padding and SHA-256 hashing.
         </div>
         <table>
             <tr>
@@ -416,11 +411,8 @@
 
         <h2>AES</h2>
         <div>
-            AES-256 CBC mode is compatible with C#.
-            <br />
-            <ul>C# counterparts:
-                <li><a href="https://gist.github.com/therightstuff/30e5cbd9b1e0de1b8865c8fb6e2971e4" target="_blank">encrypt / decrypt functions</a></li>
-            </ul>
+            AES-256 CBC mode was chosen because it's compatible with C#, which is no longer officially supported.
+            This will be revisited shortly.
         </div>
         <table>
                 <tr>
