@@ -28,8 +28,8 @@
 
             function generateKeys(){
                 toastr.info('generating keys');
-                setTimeout(()=> {
-                    keys = sfet.rsa.generateKeysSync($('#keySize').val());
+                setTimeout(async ()=> {
+                    keys = await sfet.rsa.generateKeys($('#keySize').val());
                     toastr.success(keys.keySize + '-bit keys generated in ' + keys.time + 'ms');
                     $('#rsaPublicKey').val(keys.public);
                     $('#rsaPrivateKey').val(keys.private);
