@@ -13,6 +13,10 @@
 */
 
 // add required constants to crypto
+// NOTE: at present there is no way to browserify the crypto module.
+//       the closest available alternative is the
+//       https://www.npmjs.com/package/crypto-browserify
+//       which does not support the generateKeyPair methods
 const crypto = require('crypto');
 crypto.constants = {
     RSA_PKCS1_OAEP_PADDING: 4

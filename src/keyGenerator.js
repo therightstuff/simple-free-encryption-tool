@@ -1,16 +1,15 @@
-﻿"use strict";
+"use strict";
 // module and stand-alone application that generates a PEM formatted RSA key pair
 
+// NOTE: at present there is no way to browserify the crypto module, otherwise we
+//       could use the crypto module's generateKeyPair methods (see
+//       https://medium.com/@yuvrajkakkar1/crypto-nodejs-encryption-issue-rsa-padding-add-pkcs1-type-1-data-too-large-for-key-size-e5e8a52ce8fc)
 const NodeRSA = require('node-rsa');
 
 const isStandAlone = (process.argv[1] && process.argv[1].indexOf('keyGenerator.js') !== -1);
 
-const INVALID_CALL_WITHOUT_KEYSIZE = 'generateKeys called without keySize argument';
-
 function generateKeys(keySize) {
-    if (!keySize) {
-        throw new Error(INVALID_CALL_WITHOUT_KEYSIZE);
-    }
+    keySize = Number(keySize);
     let dt = new Date();
     let time = -(dt.getTime());
     let key = new NodeRSA({ b: keySize });

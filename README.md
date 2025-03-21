@@ -1,6 +1,6 @@
 # simple-free-encryption-tool
 
-![Coverage Badge 100%](https://img.shields.io/badge/Coverage-100%25-83A603.svg?color=black&prefix=![](https://img.shields.io/badge/Coverage-100%25-83A603.svg?color=black&prefix=$coverage$))
+![Coverage Badge 100%](https://img.shields.io/badge/Coverage-100%25-83A603.svg?color=black&prefix=![](https://img.shields.io/badge/Coverage-99%25-83A603.svg?color=black&prefix=$coverage$))
 [![Known Vulnerabilities](https://snyk.io/test/github/therightstuff/simple-free-encryption-tool/badge.svg)](https://snyk.io/test/github/therightstuff/simple-free-encryption-tool)
 
 ## Simple Free RSA / AES Encryption and Decryption
@@ -88,7 +88,6 @@ Pull Requests will run `package.json`'s `test` and `build` scripts in [CodeSandb
             alert('aes decrypted ' + decrypted);
         });
     </script>
-    </script>
 </head>
 ```
 
@@ -103,13 +102,18 @@ console.log('"secret sha256 message" hashed: ' + sfet.sha256.hash('secret sha256
 
 let keySize = 2048;
 
-// generateKeys() runs key generation in a separate child process
-sfet.rsa.generateKeys(keySize, (error, keys) => {
-    console.log(keys.keySize + '-bit key pair generated asynchronously in ' + keys.time + 'ms');
+// generateKeys() runs key generation asynchronously
+// this can be called with a callback:
+sfet.rsa.generateKeys(keySize, (error, asyncKeys) => {
+    console.log(`${asyncKeys.keySize}-bit key pair generated asynchronously in ${asyncKeys.time}ms`);
 });
+// or async/await:
+let asyncKeys = await sfet.rsa.generateKeys(keySize);
+console.log(`${asyncKeys.keySize}-bit key pair generated asynchronously in ${asyncKeys.time}ms`);
 
+// generateKeysSync() runs key generation synchronously
 let keys = sfet.rsa.generateKeysSync(keySize);
-console.log(keys.keySize + '-bit key pair generated synchronously in ' + keys.time + 'ms');
+console.log(`${keys.keySize}-bit key pair generated synchronously in ${keys.time}ms`);
 
 let encrypted = sfet.rsa.encrypt(keys.public, "secret rsa message");
 let decrypted = sfet.rsa.decrypt(keys.private, encrypted);

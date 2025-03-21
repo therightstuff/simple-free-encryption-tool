@@ -4,10 +4,11 @@ const keyGenerator = require('./keyGenerator');
 const NodeRSA = require('node-rsa');
 const path = require('path');
 
+const KEY_GENERATOR_PATH = path.resolve(__dirname + '/keyGenerator.js');
+
 let rsa = {
     INVALID_CALL_WITHOUT_KEYSIZE: 'generateKeys called without keySize argument',
-    INVALID_CALL_WITH_INVALID_KEYSIZE: 'Key size must be a multiple of 8.',
-    INVALID_CALL_WITHOUT_CALLBACK: 'generateKeys called without callback function',
+    INVALID_CALL_WITH_INVALID_KEYSIZE: 'Key size must be a number and a multiple of 8.',
 
     // both parameters must be strings, publicKey PEM formatted
     encrypt: function (publicKey, message) {
@@ -38,36 +39,46 @@ let rsa = {
     },
 
     // generate PEM formatted public / private key pair asynchronously
-    // (not available on web client)
     generateKeys: function (keySize, next) {
-        if (!next){
-            throw new Error(rsa.INVALID_CALL_WITHOUT_CALLBACK);
-        }
-        // spawn child keyGenerator process, forward results to next
-        let command = path.resolve(__dirname + '/keyGenerator.js');
-        childProcess.execFile('node', [command, keySize], function (error, stdout, stderr){
-            if (error){
-                next(error);
-            } else {
-                next(error, JSON.parse(stdout));
-            }
+        // generateKeys will return a promise that resolves to the key pair,
+        // and if a callback is provided, it will be called with the key pair
+        return new Promise((resolve, reject) => {
+                if (!keySize) {
+                    if (next) {
+                        next(new Error(rsa.INVALID_CALL_WITHOUT_KEYSIZE));
+                    }
+                    return reject(new Error(rsa.INVALID_CALL_WITHOUT_KEYSIZE));
+                }
+                // convert keySize to number or throw error if not a number
+                keySize = Number(keySize);
+                if (isNaN(keySize) || keySize % 8 !== 0) {
+                    if (next) {
+                        next(new Error(rsa.INVALID_CALL_WITH_INVALID_KEYSIZE));
+                    }
+                    return reject(new Error(rsa.INVALID_CALL_WITH_INVALID_KEYSIZE));
+                }
+
+                // spawn child keyGenerator process
+                childProcess.execFile('node', [KEY_GENERATOR_PATH, keySize], function (error, stdout, stderr){
+                    if (next) {
+                        error ? next(error) : next(null, JSON.parse(stdout));
+                    }
+                    return error ? reject(error) : resolve(JSON.parse(stdout));
+                });
         });
     },
 
     // generate PEM formatted public / private key pair synchronously
-    generateKeysSync: function(keySize, next){
-        try {
-            let generatedKeys = keyGenerator(keySize);
-            if (next){
-                next(null, generatedKeys);
-            }
-            return generatedKeys;
-        } catch(err) {
-            if (next) {
-                return next(err);
-            }
-            throw err;
+    generateKeysSync: function(keySize){
+        if (!keySize) {
+            throw new Error(rsa.INVALID_CALL_WITHOUT_KEYSIZE);
         }
+        // convert keySize to number or throw error if not a number
+        keySize = Number(keySize);
+        if (isNaN(keySize) || keySize % 8 !== 0) {
+            throw new Error(rsa.INVALID_CALL_WITH_INVALID_KEYSIZE);
+        }
+        return keyGenerator(keySize);
     },
 
     sign: function(privateKey, message) {

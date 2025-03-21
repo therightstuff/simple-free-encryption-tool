@@ -36209,16 +36209,15 @@ function config (name) {
 "use strict";
 // module and stand-alone application that generates a PEM formatted RSA key pair
 
+// NOTE: at present there is no way to browserify the crypto module, otherwise we
+//       could use the crypto module's generateKeyPair methods (see
+//       https://medium.com/@yuvrajkakkar1/crypto-nodejs-encryption-issue-rsa-padding-add-pkcs1-type-1-data-too-large-for-key-size-e5e8a52ce8fc)
 const NodeRSA = require('node-rsa');
 
 const isStandAlone = (process.argv[1] && process.argv[1].indexOf('keyGenerator.js') !== -1);
 
-const INVALID_CALL_WITHOUT_KEYSIZE = 'generateKeys called without keySize argument';
-
 function generateKeys(keySize) {
-    if (!keySize) {
-        throw new Error(INVALID_CALL_WITHOUT_KEYSIZE);
-    }
+    keySize = Number(keySize);
     let dt = new Date();
     let time = -(dt.getTime());
     let key = new NodeRSA({ b: keySize });
@@ -36241,6 +36240,7 @@ if (isStandAlone){
 } else {
     module.exports = generateKeys;
 }
+
 }).call(this)}).call(this,require('_process'))
 },{"_process":180,"node-rsa":150}],222:[function(require,module,exports){
 (function (Buffer){(function (){
@@ -36320,10 +36320,11 @@ const keyGenerator = require('./keyGenerator');
 const NodeRSA = require('node-rsa');
 const path = require('path');
 
+const KEY_GENERATOR_PATH = path.resolve(__dirname + '/keyGenerator.js');
+
 let rsa = {
     INVALID_CALL_WITHOUT_KEYSIZE: 'generateKeys called without keySize argument',
-    INVALID_CALL_WITH_INVALID_KEYSIZE: 'Key size must be a multiple of 8.',
-    INVALID_CALL_WITHOUT_CALLBACK: 'generateKeys called without callback function',
+    INVALID_CALL_WITH_INVALID_KEYSIZE: 'Key size must be a number and a multiple of 8.',
 
     // both parameters must be strings, publicKey PEM formatted
     encrypt: function (publicKey, message) {
@@ -36354,36 +36355,46 @@ let rsa = {
     },
 
     // generate PEM formatted public / private key pair asynchronously
-    // (not available on web client)
     generateKeys: function (keySize, next) {
-        if (!next){
-            throw new Error(rsa.INVALID_CALL_WITHOUT_CALLBACK);
-        }
-        // spawn child keyGenerator process, forward results to next
-        let command = path.resolve(__dirname + '/keyGenerator.js');
-        childProcess.execFile('node', [command, keySize], function (error, stdout, stderr){
-            if (error){
-                next(error);
-            } else {
-                next(error, JSON.parse(stdout));
-            }
+        // generateKeys will return a promise that resolves to the key pair,
+        // and if a callback is provided, it will be called with the key pair
+        return new Promise((resolve, reject) => {
+                if (!keySize) {
+                    if (next) {
+                        next(new Error(rsa.INVALID_CALL_WITHOUT_KEYSIZE));
+                    }
+                    return reject(new Error(rsa.INVALID_CALL_WITHOUT_KEYSIZE));
+                }
+                // convert keySize to number or throw error if not a number
+                keySize = Number(keySize);
+                if (isNaN(keySize) || keySize % 8 !== 0) {
+                    if (next) {
+                        next(new Error(rsa.INVALID_CALL_WITH_INVALID_KEYSIZE));
+                    }
+                    return reject(new Error(rsa.INVALID_CALL_WITH_INVALID_KEYSIZE));
+                }
+
+                // spawn child keyGenerator process
+                childProcess.execFile('node', [KEY_GENERATOR_PATH, keySize], function (error, stdout, stderr){
+                    if (next) {
+                        error ? next(error) : next(null, JSON.parse(stdout));
+                    }
+                    return error ? reject(error) : resolve(JSON.parse(stdout));
+                });
         });
     },
 
     // generate PEM formatted public / private key pair synchronously
-    generateKeysSync: function(keySize, next){
-        try {
-            let generatedKeys = keyGenerator(keySize);
-            if (next){
-                next(null, generatedKeys);
-            }
-            return generatedKeys;
-        } catch(err) {
-            if (next) {
-                return next(err);
-            }
-            throw err;
+    generateKeysSync: function(keySize){
+        if (!keySize) {
+            throw new Error(rsa.INVALID_CALL_WITHOUT_KEYSIZE);
         }
+        // convert keySize to number or throw error if not a number
+        keySize = Number(keySize);
+        if (isNaN(keySize) || keySize % 8 !== 0) {
+            throw new Error(rsa.INVALID_CALL_WITH_INVALID_KEYSIZE);
+        }
+        return keyGenerator(keySize);
     },
 
     sign: function(privateKey, message) {
@@ -36432,6 +36443,10 @@ module.exports = utils;
 */
 
 // add required constants to crypto
+// NOTE: at present there is no way to browserify the crypto module.
+//       the closest available alternative is the
+//       https://www.npmjs.com/package/crypto-browserify
+//       which does not support the generateKeyPair methods
 const crypto = require('crypto');
 crypto.constants = {
     RSA_PKCS1_OAEP_PADDING: 4
