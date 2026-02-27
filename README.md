@@ -22,13 +22,42 @@ RSA encryption operates on a very limited string length, it is generally used to
 
 Signing a message to prove authorship (and that it hasn't been tampered with) is performed on the plaintext message, and the resulting signature can only be verified with the public key matching the private key it was signed with. The padding for signing and verifying signatures is not the same as for encrypting and decrypting messages.
 
+## AES Variants
+
+AES (Advanced Encryption Standard) comes in several variants based on **key size** and **mode of operation**:
+
+**Key sizes:**
+
+- **AES-128** – 128-bit key; fast and still considered secure for most purposes.
+- **AES-192** – 192-bit key; rarely used in practice.
+- **AES-256** – 256-bit key; strongest option, preferred when maximum security is required.
+
+**Common modes:**
+
+- **ECB** (Electronic Codebook) – encrypts each block independently with no IV; identical plaintext blocks produce identical ciphertext blocks, making patterns visible. Generally considered insecure for anything beyond trivial use.
+- **CBC** (Cipher Block Chaining) – each block is XOR'd with the previous ciphertext block before encryption, requiring an IV for the first block. Widely used and well-understood; provides strong confidentiality when a unique IV is used per message.
+- **CTR** (Counter) – turns AES into a stream cipher by encrypting a counter value and XOR'ing it with plaintext; parallelizable and efficient but provides no built-in authentication.
+- **GCM** (Galois/Counter Mode) – extends CTR with an authentication tag, providing both confidentiality and integrity in a single pass. The modern recommended default for most applications. GCM uses a **12-byte nonce** (rather than CBC's 16-byte IV); reusing a nonce with the same key is catastrophic — it breaks both confidentiality and the authentication tag, potentially allowing key recovery.
+
+**This repository implements AES-256-CBC and AES-256-GCM** — both use 256-bit keys (an exactly 32-character string). CBC uses a 16-character IV; GCM uses a 12-character nonce. For new code, prefer `aes.gcm` — it provides authenticated encryption and will detect tampering.
+
 ## Important Notes
 
-The AES secret must be a 32 character string. In order to ensure a valid string, the provided secret is always hashed using the MD5 algorithm to produce a string of the correct length.
+### AES API: `aes.cbc` and `aes.gcm`
 
-The IV, or Initialization Vector, is a 16 character hexadecimal string that's required by the AES algorithm ([read this](https://crypto.stackexchange.com/questions/3965/what-is-the-main-difference-between-a-key-an-iv-and-a-nonce) for a detailed explanation). It's not really necessary when encryption secrets aren't being reused, but as it's enforced by the underlying crypto package it's recommended to include it. If you do choose to leave it out, a default IV of '0000000000000000' will be used.
+The top-level `aes.*` methods (`aes.encrypt`, `aes.decrypt`, `aes.generateIv`, `aes.validateIv`, `aes.validateKey`, `aes.generateKey`) are **deprecated**. They have been moved to the `aes.cbc` namespace; `aes.gcm` is now also available. Having a dedicated namespace per mode (`aes.cbc.*`, `aes.gcm.*`) keeps the API unambiguous.
 
-Signing messages and verifying signatures with simple-free-encryption-tool are performed using the SHA-256 hashing algorithm.
+The key difference between the deprecated `aes.*` methods and `aes.cbc.*` is that the old methods **implicitly MD5-hashed** the supplied key, so any string length would work. **`aes.cbc` does not hash the key** — you must supply an exactly 32-character string. Use `sfet.utils.randomstring.generate(32)` to generate a valid key, or pass your own 32-character string.
+
+The AES secret must be a 32-character string. `aes.cbc` enforces this directly; pass the key as-is (no hashing is applied).
+
+(See [What is the difference between a key, an IV, and a nonce?](https://crypto.stackexchange.com/questions/3965/what-is-the-main-difference-between-a-key-an-iv-and-a-nonce))
+
+**AES-CBC IV**: a 16-character string required by `aes.cbc`. If omitted, a default of `'0000000000000000'` is used. Reusing an IV with the same key leaks information about common plaintext prefixes but is not immediately catastrophic.
+
+**AES-GCM nonce**: a 12-character string required by `aes.gcm`. Unlike CBC's IV, **the nonce is mandatory — no default is provided**. Reusing a GCM nonce with the same key completely destroys both confidentiality and the authentication tag, and can allow an attacker to recover the keystream. Always generate a fresh nonce with `aes.gcm.generateNonce()` for every encryption call and transmit it alongside the ciphertext.
+
+Signing messages and verifying signatures with `simple-free-encryption-tool` are performed using the SHA-256 hashing algorithm.
 
 ## Installation
 
@@ -86,16 +115,27 @@ Pull Requests will run `package.json`'s `test` and `build` scripts in [CodeSandb
             // verifying an rsa signature
             alert('rsa signature valid: ' + sfet.rsa.verify(keys.public, "secret rsa message", signature))
 
+            // aes.cbc requires an exactly 32-character key (no more implicit MD5 hashing)
+            let aesCbcKey = sfet.utils.randomstring.generate(32);
+
             // using default iv of '0000000000000000'
-            encrypted = sfet.aes.encrypt('secret', 'secret aes message')
-            decrypted = sfet.aes.decrypt('secret', encrypted);
-            alert('aes decrypted ' + decrypted);
+            encrypted = sfet.aes.cbc.encrypt(aesCbcKey, 'secret aes (cbc) message');
+            decrypted = sfet.aes.cbc.decrypt(aesCbcKey, encrypted);
+            alert('aes cbc decrypted ' + decrypted);
 
             // using generated iv
-            let iv = sfet.aes.generateIv();
-            encrypted = sfet.aes.encrypt('secret', 'secret aes message', iv)
-            decrypted = sfet.aes.decrypt('secret', encrypted, iv);
-            alert('aes decrypted ' + decrypted);
+            let iv = sfet.aes.cbc.generateIv();
+            encrypted = sfet.aes.cbc.encrypt(aesCbcKey, 'secret aes (cbc) message', iv);
+            decrypted = sfet.aes.cbc.decrypt(aesCbcKey, encrypted, iv);
+            alert('aes cbc decrypted ' + decrypted);
+
+            // aes.gcm: authenticated encryption — nonce is mandatory and must be
+            // unique per (key, message) pair. Never reuse a nonce with the same key.
+            let aesGcmKey = sfet.utils.randomstring.generate(32);
+            let nonce = sfet.aes.gcm.generateNonce(); // generate a fresh nonce every time
+            encrypted = sfet.aes.gcm.encrypt(aesGcmKey, 'secret aes (gcm) message', nonce);
+            decrypted = sfet.aes.gcm.decrypt(aesGcmKey, encrypted, nonce);
+            alert('aes gcm decrypted ' + decrypted);
         });
     </script>
 </head>
@@ -135,14 +175,25 @@ console.log('rsa signature ' + signature);
 // verifying an rsa signature
 console.log('rsa signature valid: ' + sfet.rsa.verify(keys.public, "secret rsa message", signature))
 
+// aes.cbc requires an exactly 32-character key (no implicit MD5 hashing)
+const aesKey = sfet.utils.randomstring.generate(32);
+
 // using default iv of '0000000000000000'
-encrypted = sfet.aes.encrypt('secret', 'secret aes message')
-decrypted = sfet.aes.decrypt('secret', encrypted);
-console.log('aes decrypted ' + decrypted);
+encrypted = sfet.aes.cbc.encrypt(aesKey, 'secret aes message');
+decrypted = sfet.aes.cbc.decrypt(aesKey, encrypted);
+console.log('aes cbc decrypted ' + decrypted);
 
 // using generated iv
-iv = sfet.aes.generateIv();
-encrypted = sfet.aes.encrypt('secret', 'secret aes message', iv)
-decrypted = sfet.aes.decrypt('secret', encrypted, iv);
-console.log('aes decrypted ' + decrypted);
+const iv = sfet.aes.cbc.generateIv();
+encrypted = sfet.aes.cbc.encrypt(aesKey, 'secret aes message', iv);
+decrypted = sfet.aes.cbc.decrypt(aesKey, encrypted, iv);
+console.log('aes cbc decrypted ' + decrypted);
+
+// aes.gcm: authenticated encryption — nonce is mandatory and must be
+// unique per (key, message) pair. Never reuse a nonce with the same key.
+const gcmKey = sfet.utils.randomstring.generate(32);
+const nonce = sfet.aes.gcm.generateNonce(); // generate a fresh nonce every time
+encrypted = sfet.aes.gcm.encrypt(gcmKey, 'secret aes message', nonce);
+decrypted = sfet.aes.gcm.decrypt(gcmKey, encrypted, nonce);
+console.log('aes gcm decrypted ' + decrypted);
 ```

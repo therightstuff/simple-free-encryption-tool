@@ -1,5 +1,7 @@
-const assert = require('assert');
+const assert = require('node:assert');
 const aes = require('../src/security.aes');
+
+// DEPRECATED
 
 describe('aes', function() {
     let secret = "my secret";
@@ -88,10 +90,40 @@ describe('aes', function() {
         });
     });
 
-    // DEPRECATED
     describe('aes.generateKey', function() {
         it('returns 32-character randomly generated string', function() {
             assert.strictEqual(aes.generateKey().length, 32);
+        });
+    });
+
+    describe('aes.validateIv', function() {
+        it('does not throw an error on valid iv', function() {
+            assert.doesNotThrow(() => {
+                aes.validateIv(correctIv);
+            });
+        });
+        it('throws an error on invalid iv', function() {
+            assert.throws(() => {
+                aes.validateIv(invalidIv);
+            }, (err) => err.message === aes.INVALID_IV_ERROR)
+        });
+    });
+
+    describe('aes.validateKey', function() {
+        it('does not throw an error on valid key', function() {
+            assert.doesNotThrow(() => {
+                aes.validateKey(secret);
+            });
+        });
+        it('does not throw an error on a 32-character key', function() {
+            assert.doesNotThrow(() => {
+                aes.validateKey("12345678901234567890123456789012");
+            });
+        });
+        it('throws an error on a null key', function() {
+            assert.throws(() => {
+                aes.validateKey();
+            }, (err) => err.message === aes.INVALID_KEY_ERROR)
         });
     });
 });
