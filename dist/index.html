@@ -99,6 +99,22 @@
                 }
             }
 
+            function updateAesMode() {
+                let mode = $('#aesModeSelector').val();
+                let cbcDesc = 'AES-256-CBC (Cipher Block Chaining) encrypts each plaintext block by XOR-ing it with the previous ciphertext block before encryption. It requires a 32-character key and a 16-character hexadecimal IV (Initialization Vector). Using the same key and IV always produces the same ciphertext, so each IV should ideally be unique per message.';
+                let gcmDesc = '<b>AES-256-GCM (Galois/Counter Mode)</b> is an authenticated encryption (AEAD) mode that provides both confidentiality and integrity verification in a single pass. It requires a 32-character key and a 12-character nonce.<br /><br />' +
+                    '<span style="color:#cc0000;"><b>&#9888; NONCE WARNING:</b> Never reuse a nonce with the same key.</span> GCM nonce reuse completely destroys both confidentiality and authentication &mdash; it exposes the keystream and can allow an attacker to recover both plaintexts and potentially the authentication key. Always click <b>Generate Nonce</b> for every new encryption operation.';
+                if (mode === 'cbc') {
+                    $('#aesModeDescription').html(cbcDesc);
+                    $('#aesIvRow').show();
+                    $('#aesNonceRow').hide();
+                } else {
+                    $('#aesModeDescription').html(gcmDesc);
+                    $('#aesIvRow').hide();
+                    $('#aesNonceRow').show();
+                }
+            }
+
             function generateRandomKey(){
                 $('#aesKey').val(
                     sfet.utils.randomstring.generate()
@@ -107,33 +123,53 @@
 
             function generateIv() {
                 $('#aesIv').val(
-                    sfet.aes.generateIv()
+                    sfet.aes.cbc.generateIv()
+                );
+            }
+
+            function generateNonce() {
+                $('#aesNonce').val(
+                    sfet.aes.gcm.generateNonce()
                 );
             }
 
             function encryptAESText() {
+                let mode = $('#aesModeSelector').val();
                 let key = $('#aesKey').val();
-                let iv = $('#aesIv').val();
-                if (iv.length == 0) iv = null;
                 let plaintext = $('#aesPlaintext').val();
                 try {
-                    let encrypted = sfet.aes.encrypt(key, plaintext, iv);
+                    let encrypted;
+                    if (mode === 'cbc') {
+                        let iv = $('#aesIv').val();
+                        if (iv.length == 0) iv = null;
+                        encrypted = sfet.aes.cbc.encrypt(key, plaintext, iv);
+                    } else {
+                        let nonce = $('#aesNonce').val();
+                        encrypted = sfet.aes.gcm.encrypt(key, plaintext, nonce);
+                    }
                     $('#aesEncryptedText').val(encrypted);
-                    toastr.success('AES encryption successful');
+                    toastr.success('AES-' + mode.toUpperCase() + ' encryption successful');
                 } catch (error){
                     toastr.error(error.message);
                 }
             }
 
             function decryptAESText() {
+                let mode = $('#aesModeSelector').val();
                 let key = $('#aesKey').val();
-                let iv = $('#aesIv').val();
-                if (iv.length == 0) iv = null;
                 let encrypted = $('#aesEncryptedText').val();
                 try {
-                    let decrypted = sfet.aes.decrypt(key, encrypted, iv);
+                    let decrypted;
+                    if (mode === 'cbc') {
+                        let iv = $('#aesIv').val();
+                        if (iv.length == 0) iv = null;
+                        decrypted = sfet.aes.cbc.decrypt(key, encrypted, iv);
+                    } else {
+                        let nonce = $('#aesNonce').val();
+                        decrypted = sfet.aes.gcm.decrypt(key, encrypted, nonce);
+                    }
                     $('#aesPlaintext').val(decrypted);
-                    toastr.success('AES decryption successful');
+                    toastr.success('AES-' + mode.toUpperCase() + ' decryption successful');
                 } catch (error){
                     toastr.error(error.message);
                 }
@@ -154,9 +190,8 @@
             }
 
             function encryptAESFile(){
+                let mode = $('#aesModeSelector').val();
                 let key = $('#aesKey').val();
-                let iv = $('#aesIv').val();
-                if (iv.length == 0) iv = null;
                 let filename = $('#aesSourceFile').val();
                 if (!filename || filename.length == 0){
                     return toastr.error('Source file must be specified');
@@ -175,10 +210,16 @@
                     let content = reader.result.substr(contentIndex);
 
                     try {
-                        $('#aesResultFile').attr(
-                            'href',
-                            metadata + sfet.aes.encrypt(key, content, iv)
-                        );
+                        let encrypted;
+                        if (mode === 'cbc') {
+                            let iv = $('#aesIv').val();
+                            if (iv.length == 0) iv = null;
+                            encrypted = sfet.aes.cbc.encrypt(key, content, iv);
+                        } else {
+                            let nonce = $('#aesNonce').val();
+                            encrypted = sfet.aes.gcm.encrypt(key, content, nonce);
+                        }
+                        $('#aesResultFile').attr('href', metadata + encrypted);
 
                         // get filename from (fake) full path
                         let strippedFilename = filename.replace(/^.*[\\\/]/, '');
@@ -187,7 +228,7 @@
                             strippedFilename + '.encrypted'
                         );
 
-                        toastr.success('AES encryption successful');
+                        toastr.success('AES-' + mode.toUpperCase() + ' encryption successful');
                         $('#aesResultFile').show();
                     } catch (error){
                         toastr.error(error.message);
@@ -199,9 +240,8 @@
             }
 
             function decryptAESFile(){
+                let mode = $('#aesModeSelector').val();
                 let key = $('#aesKey').val();
-                let iv = $('#aesIv').val();
-                if (iv.length == 0) iv = null;
                 let filename = $('#aesSourceFile').val();
                 if (!filename || filename.length == 0){
                     return toastr.error('Source file must be specified');
@@ -220,10 +260,16 @@
                     let content = reader.result.substr(contentIndex);
 
                     try {
-                        $('#aesResultFile').attr(
-                            'href',
-                            metadata + sfet.aes.decrypt(key, content, iv)
-                        );
+                        let decrypted;
+                        if (mode === 'cbc') {
+                            let iv = $('#aesIv').val();
+                            if (iv.length == 0) iv = null;
+                            decrypted = sfet.aes.cbc.decrypt(key, content, iv);
+                        } else {
+                            let nonce = $('#aesNonce').val();
+                            decrypted = sfet.aes.gcm.decrypt(key, content, nonce);
+                        }
+                        $('#aesResultFile').attr('href', metadata + decrypted);
 
                         // get filename from (fake) full path
                         let strippedFilename = filename.replace(/^.*[\\\/]/, '');
@@ -232,12 +278,9 @@
                         if (encryptedExtensionIndex >= 0) {
                             strippedFilename = strippedFilename.substr(0, encryptedExtensionIndex);
                         }
-                        $('#aesResultFile').attr(
-                            'download',
-                            strippedFilename
-                        );
+                        $('#aesResultFile').attr('download', strippedFilename);
 
-                        toastr.success('AES decryption successful');
+                        toastr.success('AES-' + mode.toUpperCase() + ' decryption successful');
                         $('#aesResultFile').show();
                     } catch (error){
                         toastr.error(error.message);
@@ -250,6 +293,9 @@
 
             // Call this code when the page is done loading.
             $(function () {
+                // Initialize AES mode description.
+                updateAesMode();
+
                 // Check for the various File API support.
                 if (window.File && window.FileReader && window.FileList && window.Blob) {
                     console.log('file handling available');
@@ -310,23 +356,6 @@
             the plaintext message, and the resulting signature can only be verified with the public key
             matching the private key it was signed with. The padding for signing and verifying signatures
             is not the same as for encrypting and decrypting messages.
-        <br />
-        <br />
-        <b><u>Important Quirks</u></b>:
-        <br />
-            The AES secret must be a 32 character string. In order to ensure a valid string, the secret is
-            hashed using the MD5 algorithm to produce a string of the correct length.
-            <br />
-            <br />
-            The IV, or Initialization Vector, is a 16 character hexadecimal string that's required by the AES algorithm
-            (<a href="https://crypto.stackexchange.com/questions/3965/what-is-the-main-difference-between-a-key-an-iv-and-a-nonce" target="_blank">read this for a detailed explanation</a>).
-            It's not really necessary when encryption secrets aren't being reused, but as it's enforced by
-            the underlying crypto package it's recommended to include it. If you do choose to leave it out,
-            a default IV of '0000000000000000' will be used.
-            <br />
-            <br />
-            Signing messages and verifying signatures with simple-free-encryption-tool are performed using the SHA-256
-            hashing algorithm.
         <br />
         <br />
         <b><u>File Encryption</u></b>:
@@ -411,16 +440,27 @@
 
         <h2>AES</h2>
         <div>
-            AES-256 CBC mode was initially chosen because it's compatible with C#, which is no longer officially supported.
+            Select AES mode:
+            <select id="aesModeSelector" onchange="updateAesMode()">
+                <option value="cbc">CBC &mdash; Cipher Block Chaining</option>
+                <option value="gcm">GCM &mdash; Galois/Counter Mode (Authenticated)</option>
+            </select>
+            <br /><br />
+            <div id="aesModeDescription" style="max-width:500px; text-align:left; margin: 0 auto;"></div>
         </div>
+        <br />
         <table>
                 <tr>
-                    <td align="right">Key: <input id="aesKey" /></td>
+                    <td align="right">Key (32 chars): <input id="aesKey" /></td>
                     <td align="left"><button onclick="generateRandomKey()">Generate random key</button>
                 </tr>
-                <tr>
-                    <td align="right">IV: <input id="aesIv" /></td>
+                <tr id="aesIvRow">
+                    <td align="right">IV (16 chars): <input id="aesIv" /></td>
                     <td align="left"><button onclick="generateIv()">Generate IV</button></td>
+                </tr>
+                <tr id="aesNonceRow" style="display:none">
+                    <td align="right">Nonce (12 chars): <input id="aesNonce" /></td>
+                    <td align="left"><button onclick="generateNonce()">Generate Nonce</button></td>
                 </tr>
                 <tr>
                     <td colspan="2" align="center">
