@@ -5,6 +5,8 @@ on:
 
 jobs:
   test-and-build:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
 
     steps:
@@ -19,6 +21,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Run tests
+        run: npm test
 
       - name: Run build
         run: npm run build
