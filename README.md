@@ -76,8 +76,6 @@ After running the tests, the coverage report will be available at [coverage/inde
 
 The coverage badge will be updated automatically.
 
-Pull Requests will run `package.json`'s `test` and `build` scripts in [CodeSandbox CI](https://codesandbox.io/docs/ci).
-
 ## Client
 
 ```html
