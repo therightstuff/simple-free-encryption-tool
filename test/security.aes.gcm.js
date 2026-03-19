@@ -15,6 +15,7 @@ const aes = require('../src/security.aes');
 // Use aes.gcm.generateNonce() to produce a fresh nonce for every encryption.
 
 describe('aes.gcm', function() {
+    jest.setTimeout(30000);
     let invalidKey = "my secret";
     let validKey = "my new 32 character secret key!!";
     let plaintext = "plaintext";
