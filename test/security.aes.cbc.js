@@ -4,6 +4,7 @@ const aes = require('../src/security.aes');
 // DEPRECATED
 
 describe('aes.cbc', function() {
+    jest.setTimeout(30000);
     let invalidKey = "my secret";
     let validKey = "my new 32 character secret key!!";
     let plaintext = "plaintext";

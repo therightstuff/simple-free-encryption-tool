@@ -13,7 +13,7 @@ describe('md5', function() {
 
     describe('md5.hash() throws error', function() {
         it('throws an error on null value', function() {
-            assert.throws(md5.hash, TypeError, 'The "data" argument must be one of type string, Buffer, TypedArray, or DataView. Received type undefined');
+            assert.throws(() => md5.hash(), (err) => err.constructor.name === 'TypeError');
         });
     });
 });

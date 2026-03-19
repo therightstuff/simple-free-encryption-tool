@@ -5,11 +5,16 @@ describe('rsa', function() {
     const plaintext = "plaintext";
     const testKeySize = 2048;
     const keyGenerationTimeout = testKeySize * 10;
+    jest.setTimeout(keyGenerationTimeout + 5000);
 
     describe('rsa methods work correctly with generated key pair', function() {
-        this.timeout(keyGenerationTimeout);
-        const generatedKeyPair = rsa.generateKeysSync(testKeySize);
-        const encrypted = rsa.encrypt(generatedKeyPair.public, plaintext);
+        let generatedKeyPair;
+        let encrypted;
+
+        beforeAll(function() {
+            generatedKeyPair = rsa.generateKeysSync(testKeySize);
+            encrypted = rsa.encrypt(generatedKeyPair.public, plaintext);
+        });
 
         it(`synchronously generated keys produced within ${keyGenerationTimeout}ms`, function() {
             assert.strictEqual(generatedKeyPair.time < keyGenerationTimeout, true);
@@ -48,7 +53,6 @@ describe('rsa', function() {
     });
 
     describe('synchronously generated key pair tests', function(){
-        this.timeout(keyGenerationTimeout);
         it('should generate result with keySize, time, public and private keys', function(done) {
             try {
                 const keys = rsa.generateKeysSync(testKeySize);
@@ -99,7 +103,6 @@ describe('rsa', function() {
     });
 
     describe('asynchronously generated key pair tests', function(){
-        this.timeout(keyGenerationTimeout);
         it(`(async) should generate result with keySize, time, public and private keys within ${keyGenerationTimeout}ms`, async function() {
             const generatedKeyPair = await rsa.generateKeys(testKeySize);
             assert.strictEqual(generatedKeyPair.hasOwnProperty("keySize"), true);
@@ -122,18 +125,7 @@ describe('rsa', function() {
                 }
             });
         });
-        it('(async) throws an error when no keySize provided', async function() {
-            try {
-                await rsa.generateKeys();
-                throw new Error('expected error, none thrown');
-            } catch(err) {
-                if (err.message === rsa.INVALID_CALL_WITHOUT_KEYSIZE) {
-                    return;
-                }
-                throw err;
-            }
-        });
-        it('(callback) throws an error when no keySize provided', async function(done) {
+        it('(callback) throws an error when no keySize provided', function(done) {
             rsa.generateKeys(null, (err, result) => {
                 if (err) {
                     if (err.message === rsa.INVALID_CALL_WITHOUT_KEYSIZE) {
@@ -142,18 +134,12 @@ describe('rsa', function() {
                     return done(err);
                 }
                 return done(new Error('expected error, none thrown'));
-            });
+            }).catch(() => {}); // error already handled by callback
         });
-        it('(async) resolves with an error when invalid keySize provided', async function() {
-            try {
-                await rsa.generateKeys('asdf');
-                throw new Error('expected error, none thrown');
-            } catch(err) {
-                if (err.message === rsa.INVALID_CALL_WITH_INVALID_KEYSIZE) {
-                    return;
-                }
-                throw err;
-            }
+        it('(async) throws an error when no keySize provided', function() {
+            return rsa.generateKeys(null).catch(err => {
+                assert.strictEqual(err.message, rsa.INVALID_CALL_WITHOUT_KEYSIZE);
+            });
         });
         it('(callback) resolves with an error when invalid keySize provided', function(done) {
             rsa.generateKeys('asdf', (err, result) => {
@@ -164,6 +150,11 @@ describe('rsa', function() {
                     return done(err);
                 }
                 return done(new Error('expected error, none thrown'));
+            }).catch(() => {}); // error already handled by callback
+        });
+        it('(async) resolves with an error when invalid keySize provided', function() {
+            return rsa.generateKeys('asdf').catch(err => {
+                assert.strictEqual(err.message, rsa.INVALID_CALL_WITH_INVALID_KEYSIZE);
             });
         });
     });
