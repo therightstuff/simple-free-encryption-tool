@@ -46,7 +46,7 @@
   "devDependencies": {
     "browserify": "^17.0.1",
     "coverage-badge-creator": "^2.0.1",
-    "jest": "^29.0.0",
+    "jest": "^30.3.0",
     "jest-environment-jsdom": "^30.3.0"
   },
   "files": [
