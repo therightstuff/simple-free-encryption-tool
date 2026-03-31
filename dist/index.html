@@ -1,4 +1,5 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
     <head>
         <title>Simple Free Encryption Tool</title>
         <link rel="stylesheet" href="css/toastr.min.css" />
@@ -320,15 +321,41 @@
             });
         </script>
         <style>
+            body {
+                text-align: center;
+            }
             textarea {
                 width: 250px;
                 height: 75px;
             }
+            .center-container {
+                text-align: center;
+            }
+            td.align-center, th.align-center {
+                text-align: center;
+            }
+            td.align-right, th.align-right {
+                text-align: right;
+            }
+            td.align-left, th.align-left {
+                text-align: left;
+            }
+            td.valign-middle, th.valign-middle, div.valign-middle {
+                vertical-align: middle;
+            }
+            table {
+                margin: 0 auto;
+                border-collapse: collapse;
+            }
+            h2 {
+                text-align: center;
+                margin-top: 20px;
+            }
         </style>
     </head>
     <body>
-        <center>
-        <div style="width:500px;">
+        <div class="center-container">
+        <div style="width:500px; margin: 0 auto;">
         <h1>Simple Free Encryption Tool</h1>
         <b>Simple Free Encryption Tool (sfet)</b> uses RSA and AES versions that are strong and allow
         encryption between client-side Javascript and Node.js.
@@ -365,8 +392,14 @@
         </div>
         <h2>MD5</h2>
         <table>
+            <thead>
+                <tr>
+                    <th colspan="2" scope="col"></th>
+                </tr>
+            </thead>
+            <tbody>
             <tr>
-                <td colspan="2" align="center"><button onclick="hashMD5()">Hash!</button></td>
+                <td colspan="2" class="align-center"><button onclick="hashMD5()">Hash!</button></td>
             </tr>
             <tr>
                 <td>Initial text</td>
@@ -376,12 +409,19 @@
                 <td><textarea id="md5Plaintext"></textarea></td>
                 <td><input id="md5Hash" size="40" style="text-align: center" /></td>
             </tr>
+            </tbody>
         </table>
 
         <h2>SHA-256</h2>
         <table>
+            <thead>
+                <tr>
+                    <th colspan="2" scope="col"></th>
+                </tr>
+            </thead>
+            <tbody>
             <tr>
-                <td colspan="2" align="center"><button onclick="hashSHA256()">Hash!</button></td>
+                <td colspan="2" class="align-center"><button onclick="hashSHA256()">Hash!</button></td>
             </tr>
             <tr>
                 <td>Initial text</td>
@@ -391,6 +431,7 @@
                 <td><textarea id="sha256Plaintext"></textarea></td>
                 <td><input id="sha256Hash" size="40" style="text-align: center" /></td>
             </tr>
+            </tbody>
         </table>
 
         <h2>RSA</h2>
@@ -398,8 +439,14 @@
             RSA Keys are generated with PKCS1 OAEP padding and SHA-256 hashing.
         </div>
         <table>
+            <thead>
+                <tr>
+                    <th colspan="2" scope="col"></th>
+                </tr>
+            </thead>
+            <tbody>
             <tr>
-                <td colspan="2" align="center"><select id="keySize">
+                <td colspan="2" class="align-center"><select id="keySize">
                     <option value="2048" selected="selected">2048</option>
                     <option value="4096">4096</option>
                 </select>-bit <button onclick="generateKeys()">Generate New Key Pair!</button></td>
@@ -413,8 +460,8 @@
                 <td><textarea id="rsaPrivateKey" onchange="updateRSAKeys()" oninput="updateRSAKeys()"></textarea></td>
             </tr>
             <tr>
-                <td align="center"><button onclick="encryptRSA()">Encrypt</button></td>
-                <td align="center"><button onclick="decryptRSA()">Decrypt</button></td>
+                <td class="align-center"><button onclick="encryptRSA()">Encrypt</button></td>
+                <td class="align-center"><button onclick="decryptRSA()">Decrypt</button></td>
             </tr>
             <tr>
                 <td>Unencrypted text</td>
@@ -425,8 +472,8 @@
                 <td><textarea id="rsaEncryptedText"></textarea></td>
             </tr>
             <tr>
-                <td align="center"><button onclick="signRSA()">Sign</button></td>
-                <td align="center"><button onclick="verifyRSA()">Verify</button></td>
+                <td class="align-center"><button onclick="signRSA()">Sign</button></td>
+                <td class="align-center"><button onclick="verifyRSA()">Verify</button></td>
             </tr>
             <tr>
                 <td>Signature</td>
@@ -434,8 +481,9 @@
             </tr>
             <tr>
                 <td><textarea id="rsaSignature"></textarea></td>
-                <td align="center" valign="middle"><div id="rsaVerified" align="center" valign="middle"></div></td>
+                <td class="align-center valign-middle"><div id="rsaVerified" class="align-center valign-middle"></div></td>
             </tr>
+            </tbody>
         </table>
 
         <h2>AES</h2>
@@ -450,26 +498,32 @@
         </div>
         <br />
         <table>
+            <thead>
                 <tr>
-                    <td align="right">Key (32 chars): <input id="aesKey" /></td>
-                    <td align="left"><button onclick="generateRandomKey()">Generate random key</button>
+                    <th colspan="2" scope="col"></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="align-right">Key (32 chars): <input id="aesKey" /></td>
+                    <td class="align-left"><button onclick="generateRandomKey()">Generate random key</button>
                 </tr>
                 <tr id="aesIvRow">
-                    <td align="right">IV (16 chars): <input id="aesIv" /></td>
-                    <td align="left"><button onclick="generateIv()">Generate IV</button></td>
+                    <td class="align-right">IV (16 chars): <input id="aesIv" /></td>
+                    <td class="align-left"><button onclick="generateIv()">Generate IV</button></td>
                 </tr>
                 <tr id="aesNonceRow" style="display:none">
-                    <td align="right">Nonce (12 chars): <input id="aesNonce" /></td>
-                    <td align="left"><button onclick="generateNonce()">Generate Nonce</button></td>
+                    <td class="align-right">Nonce (12 chars): <input id="aesNonce" /></td>
+                    <td class="align-left"><button onclick="generateNonce()">Generate Nonce</button></td>
                 </tr>
                 <tr>
-                    <td colspan="2" align="center">
+                    <td colspan="2" class="align-center">
                         <div id="aesSelectorDiv"></div>
                     </td>
                 </tr>
                 <tr class="aesFileOptions">
-                        <td align="center"><button onclick="encryptAESFile()">Encrypt</button></td>
-                        <td align="center"><button onclick="decryptAESFile()">Decrypt</button></td>
+                        <td class="align-center"><button onclick="encryptAESFile()">Encrypt</button></td>
+                        <td class="align-center"><button onclick="decryptAESFile()">Decrypt</button></td>
                 </tr>
                 <tr class="aesFileOptions">
                     <td colspan="2">Source File: <input type="file" id="aesSourceFile" /></td>
@@ -478,8 +532,8 @@
                     <td colspan="2">Result File: <a id="aesResultFile" href="data:application/octet-stream;charset=utf-8;base64,Zm9vIGJhcg==">Download Result</a></td>
                 </tr>
                 <tr class="aesTextOptions">
-                    <td align="center"><button onclick="encryptAESText()">Encrypt</button></td>
-                    <td align="center"><button onclick="decryptAESText()">Decrypt</button></td>
+                    <td class="align-center"><button onclick="encryptAESText()">Encrypt</button></td>
+                    <td class="align-center"><button onclick="decryptAESText()">Decrypt</button></td>
                 </tr>
                 <tr class="aesTextOptions">
                     <td>Unencrypted text</td>
@@ -489,8 +543,9 @@
                     <td><textarea id="aesPlaintext"></textarea></td>
                     <td><textarea id="aesEncryptedText"></textarea></td>
                 </tr>
+            </tbody>
             </table>
 
-        </center>
+        </div>
     </body>
 </html>
