@@ -1,4 +1,4 @@
-const assert = require('assert');
+const assert = require('node:assert');
 const rsa = require('../src/security.rsa');
 
 describe('rsa', function() {
@@ -11,13 +11,9 @@ describe('rsa', function() {
         let generatedKeyPair;
         let encrypted;
 
-        beforeAll(function() {
-            generatedKeyPair = rsa.generateKeysSync(testKeySize);
-            encrypted = rsa.encrypt(generatedKeyPair.public, plaintext);
-        });
-
-        it(`synchronously generated keys produced within ${keyGenerationTimeout}ms`, function() {
-            assert.strictEqual(generatedKeyPair.time < keyGenerationTimeout, true);
+        beforeAll(async function() {
+            generatedKeyPair = await rsa.generateKeys(testKeySize);
+            encrypted = await rsa.encrypt(generatedKeyPair.public, plaintext);
         });
 
         describe('rsa.encrypt(publicKey, plaintext) != plaintext', function() {
@@ -27,14 +23,14 @@ describe('rsa', function() {
         });
 
         describe('rsa.encrypt(publicKey, plaintext) updates each time', function() {
-            it('returns re-encrypted text different from previous attempt', function() {
-                assert.notStrictEqual(rsa.encrypt(generatedKeyPair.public, plaintext), encrypted);
+            it('returns re-encrypted text different from previous attempt', async function() {
+                assert.notStrictEqual(await rsa.encrypt(generatedKeyPair.public, plaintext), encrypted);
             });
         });
 
         describe('rsa.decrypt(privateKey, encrypted) == plaintext', function() {
-            it('returns correctly decrypted plaintext', function() {
-                assert.strictEqual(rsa.decrypt(generatedKeyPair.private, encrypted), plaintext);
+            it('returns correctly decrypted plaintext', async function() {
+                assert.strictEqual(await rsa.decrypt(generatedKeyPair.private, encrypted), plaintext);
             });
         });
 
@@ -49,56 +45,6 @@ describe('rsa', function() {
                     true
                 )
             });
-        });
-    });
-
-    describe('synchronously generated key pair tests', function(){
-        it('should generate result with keySize, time, public and private keys', function(done) {
-            try {
-                const keys = rsa.generateKeysSync(testKeySize);
-                assert.strictEqual(keys.hasOwnProperty("keySize"), true);
-                assert.strictEqual(keys.keySize, testKeySize);
-                assert.strictEqual(keys.hasOwnProperty("time"), true);
-                assert.strictEqual(keys.time < keyGenerationTimeout, true);
-                assert.strictEqual(keys.hasOwnProperty("public"), true);
-                assert.strictEqual(keys.hasOwnProperty("private"), true);
-                done();
-            } catch(err) {
-                done(err);
-            }
-        });
-        it('throws an error when no keySize argument provided', function(done) {
-            try {
-                rsa.generateKeysSync();
-                return done(new Error('expected error, none thrown'));
-            } catch(err) {
-                if (err.message === rsa.INVALID_CALL_WITHOUT_KEYSIZE) {
-                    return done();
-                }
-                return done(new Error(err));
-            }
-        });
-        it('resolves with an error when no keySize provided', function(done) {
-            try {
-                rsa.generateKeysSync(null);
-                return done(new Error('expected error, none thrown'));
-            } catch(err) {
-                if (err.message === rsa.INVALID_CALL_WITHOUT_KEYSIZE) {
-                    return done();
-                }
-                return done(new Error(err));
-            }
-        });
-        it('throws an error when invalid keySize argument provided', function() {
-            try {
-                rsa.generateKeysSync('asdf');
-                throw new Error('expected error, none thrown');
-            } catch(err) {
-                if (err.message === rsa.INVALID_CALL_WITH_INVALID_KEYSIZE) {
-                    return;
-                }
-                throw err;
-            }
         });
     });
 

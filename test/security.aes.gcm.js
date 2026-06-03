@@ -25,16 +25,20 @@ describe('aes.gcm', function() {
     let invalidNonce = "short";           // < 12 characters
     let generatedNonce = aes.gcm.generateNonce();
 
-    let encrypted = aes.gcm.encrypt(validKey, plaintext, correctNonce);
-    let encryptedWithOtherNonce = aes.gcm.encrypt(validKey, plaintext, incorrectNonce);
-    let encryptedWithGeneratedNonce = aes.gcm.encrypt(validKey, plaintext, generatedNonce);
+    let encrypted, encryptedWithOtherNonce, encryptedWithGeneratedNonce;
+
+    beforeAll(async function() {
+        encrypted = await aes.gcm.encrypt(validKey, plaintext, correctNonce);
+        encryptedWithOtherNonce = await aes.gcm.encrypt(validKey, plaintext, incorrectNonce);
+        encryptedWithGeneratedNonce = await aes.gcm.encrypt(validKey, plaintext, generatedNonce);
+    });
 
     describe('aes.gcm.encrypt encrypts correctly', function() {
         it('returns encrypted text different from plaintext', function() {
             assert.notStrictEqual(encrypted, plaintext);
         });
-        it('returns deterministic ciphertext for same key, message, and nonce', function() {
-            assert.strictEqual(aes.gcm.encrypt(validKey, plaintext, correctNonce), encrypted);
+        it('returns deterministic ciphertext for same key, message, and nonce', async function() {
+            assert.strictEqual(await aes.gcm.encrypt(validKey, plaintext, correctNonce), encrypted);
         });
         it('returns different encrypted text with generated nonce', function() {
             assert.notStrictEqual(encrypted, encryptedWithGeneratedNonce);
@@ -48,103 +52,128 @@ describe('aes.gcm', function() {
         it('returns different encrypted text with another nonce different from plaintext', function() {
             assert.notStrictEqual(encryptedWithOtherNonce, plaintext);
         });
-        it('nonce reuse with the same key produces identical ciphertext — demonstrating why nonce uniqueness is critical', function() {
+        it('nonce reuse with the same key produces identical ciphertext — demonstrating why nonce uniqueness is critical', async function() {
             // Two encryptions of the same plaintext with the same key and nonce
             // yield the same output. In GCM this also exposes the keystream,
             // allowing an attacker to XOR both ciphertexts and recover both
             // plaintexts, and potentially the authentication key.
-            let first  = aes.gcm.encrypt(validKey, plaintext, correctNonce);
-            let second = aes.gcm.encrypt(validKey, "different plaintext", correctNonce);
-            // They share the same keystream — the ciphertexts differ only by the
-            // XOR of the plaintexts, which is immediately recoverable.
-            assert.strictEqual(first, encrypted); // deterministic confirmation
-            assert.notStrictEqual(first, second); // but different plaintexts differ
+            let first  = await aes.gcm.encrypt(validKey, plaintext, correctNonce);
+            let second = await aes.gcm.encrypt(validKey, "different plaintext", correctNonce);
+            assert.strictEqual(first, encrypted);
+            assert.notStrictEqual(first, second);
         });
     });
 
     describe('aes.gcm.decrypt decrypts correctly', function() {
-        it('returns correctly decrypted plaintext with nonce', function() {
-            assert.strictEqual(aes.gcm.decrypt(validKey, encrypted, correctNonce), plaintext);
+        it('returns correctly decrypted plaintext with nonce', async function() {
+            assert.strictEqual(await aes.gcm.decrypt(validKey, encrypted, correctNonce), plaintext);
         });
-        it('returns correctly decrypted plaintext with generated nonce', function() {
-            assert.strictEqual(aes.gcm.decrypt(validKey, encryptedWithGeneratedNonce, generatedNonce), plaintext);
+        it('returns correctly decrypted plaintext with generated nonce', async function() {
+            assert.strictEqual(await aes.gcm.decrypt(validKey, encryptedWithGeneratedNonce, generatedNonce), plaintext);
         });
-        it('throws an error when decrypting with wrong nonce (authentication failure)', function() {
-            assert.throws(() => {
-                aes.gcm.decrypt(validKey, encrypted, incorrectNonce);
-            });
+        it('throws an error when decrypting with wrong nonce (authentication failure)', async function() {
+            await assert.rejects(() => aes.gcm.decrypt(validKey, encrypted, incorrectNonce));
         });
-        it('throws an error when decrypting with wrong key (authentication failure)', function() {
+        it('throws an error when decrypting with wrong key (authentication failure)', async function() {
             let otherKey = "another 32 character secret key!";
-            assert.throws(() => {
-                aes.gcm.decrypt(otherKey, encrypted, correctNonce);
-            });
+            await assert.rejects(() => aes.gcm.decrypt(otherKey, encrypted, correctNonce));
         });
-        it('throws an error when ciphertext has been tampered with', function() {
-            // Flip a byte in the ciphertext portion (after the 16-byte tag) by
-            // decoding, modifying and re-encoding the base64 payload.
+        it('throws an error when ciphertext has been tampered with', async function() {
+            // Web Crypto AES-GCM: ciphertext is followed by 16-byte auth tag.
+            // Flip a byte in the ciphertext portion to trigger authentication failure.
             let buf = Buffer.from(encrypted, 'base64');
-            buf[buf.length - 1] ^= 0xff;
+            buf[0] ^= 0xff;
             let tampered = buf.toString('base64');
-            assert.throws(() => {
-                aes.gcm.decrypt(validKey, tampered, correctNonce);
-            });
+            await assert.rejects(() => aes.gcm.decrypt(validKey, tampered, correctNonce));
         });
     });
 
     describe('aes.gcm.encrypt handles invalid values', function() {
-        it('throws an error when no nonce is provided — nonce is mandatory for GCM', function() {
-            assert.throws(() => {
-                aes.gcm.encrypt(validKey, plaintext);
-            }, (err) => err.message === aes.gcm.INVALID_NONCE_ERROR);
+        it('throws an error when no nonce is provided — nonce is mandatory for GCM', async function() {
+            await assert.rejects(
+                () => aes.gcm.encrypt(validKey, plaintext),
+                (err) => err.message === aes.gcm.INVALID_NONCE_ERROR
+            );
         });
-        it('throws an error on invalid nonce (too short)', function() {
-            assert.throws(() => {
-                aes.gcm.encrypt(validKey, plaintext, invalidNonce);
-            }, (err) => err.message === aes.gcm.INVALID_NONCE_ERROR);
+        it('throws an error on invalid nonce (too short)', async function() {
+            await assert.rejects(
+                () => aes.gcm.encrypt(validKey, plaintext, invalidNonce),
+                (err) => err.message === aes.gcm.INVALID_NONCE_ERROR
+            );
         });
-        it('throws an error on invalid cipher data', function() {
-            assert.throws(() => {
-                aes.gcm.encrypt(validKey, null, correctNonce);
-            });
+        it('throws an error on invalid cipher data', async function() {
+            await assert.rejects(() => aes.gcm.encrypt(validKey, null, correctNonce));
         });
-        it('throws an error on invalid key', function() {
-            assert.throws(() => {
-                aes.gcm.encrypt(invalidKey, plaintext, correctNonce);
-            }, (err) => err.message === aes.gcm.INVALID_KEY_ERROR);
+        it('throws an error on invalid key', async function() {
+            await assert.rejects(
+                () => aes.gcm.encrypt(invalidKey, plaintext, correctNonce),
+                (err) => err.message === aes.gcm.INVALID_KEY_ERROR
+            );
         });
-        it('throws an error on missing key', function() {
-            assert.throws(() => {
-                aes.gcm.encrypt(undefined, plaintext, correctNonce);
-            }, (err) => err.message === aes.gcm.INVALID_KEY_ERROR);
+        it('throws an error on missing key', async function() {
+            await assert.rejects(
+                () => aes.gcm.encrypt(undefined, plaintext, correctNonce),
+                (err) => err.message === aes.gcm.INVALID_KEY_ERROR
+            );
         });
     });
 
     describe('aes.gcm.decrypt handles invalid values', function() {
-        it('throws an error when no nonce is provided — nonce is mandatory for GCM', function() {
-            assert.throws(() => {
-                aes.gcm.decrypt(validKey, encrypted);
-            }, (err) => err.message === aes.gcm.INVALID_NONCE_ERROR);
+        it('throws an error when no nonce is provided — nonce is mandatory for GCM', async function() {
+            await assert.rejects(
+                () => aes.gcm.decrypt(validKey, encrypted),
+                (err) => err.message === aes.gcm.INVALID_NONCE_ERROR
+            );
         });
-        it('throws an error on invalid nonce (too short)', function() {
-            assert.throws(() => {
-                aes.gcm.decrypt(validKey, encrypted, invalidNonce);
-            }, (err) => err.message === aes.gcm.INVALID_NONCE_ERROR);
+        it('throws an error on invalid nonce (too short)', async function() {
+            await assert.rejects(
+                () => aes.gcm.decrypt(validKey, encrypted, invalidNonce),
+                (err) => err.message === aes.gcm.INVALID_NONCE_ERROR
+            );
         });
-        it('throws an error on invalid cipher data', function() {
-            assert.throws(() => {
-                aes.gcm.decrypt(validKey, null, correctNonce);
-            });
+        it('uses fallback message when decode error has no message', async function() {
+            const originalAtob = globalThis.atob;
+            globalThis.atob = () => { throw {}; };
+            try {
+                await assert.rejects(
+                    () => aes.gcm.decrypt(validKey, 'any-ciphertext', correctNonce),
+                    (err) => err.message === 'AES-GCM decryption failed (invalid ciphertext)'
+                );
+            } finally {
+                globalThis.atob = originalAtob;
+            }
         });
-        it('throws an error on invalid key', function() {
-            assert.throws(() => {
-                aes.gcm.decrypt(invalidKey, encrypted, correctNonce);
-            }, (err) => err.message === aes.gcm.INVALID_KEY_ERROR);
+        it('throws a normalized error on malformed base64 ciphertext', async function() {
+            await assert.rejects(
+                () => aes.gcm.decrypt(validKey, '%%%not-base64%%%', correctNonce),
+                (err) => err.message.toLowerCase().includes('invalid')
+            );
         });
-        it('throws an error on missing key', function() {
-            assert.throws(() => {
-                aes.gcm.decrypt(undefined, encrypted, correctNonce);
-            }, (err) => err.message === aes.gcm.INVALID_KEY_ERROR);
+        it('uses fallback message when auth error has no message', async function() {
+            const decryptSpy = jest.spyOn(globalThis.crypto.subtle, 'decrypt').mockRejectedValue({});
+            try {
+                await assert.rejects(
+                    () => aes.gcm.decrypt(validKey, encrypted, correctNonce),
+                    (err) => err.message === 'AES-GCM decryption failed (authentication error)'
+                );
+            } finally {
+                decryptSpy.mockRestore();
+            }
+        });
+        it('throws an error on invalid cipher data', async function() {
+            await assert.rejects(() => aes.gcm.decrypt(validKey, null, correctNonce));
+        });
+        it('throws an error on invalid key', async function() {
+            await assert.rejects(
+                () => aes.gcm.decrypt(invalidKey, encrypted, correctNonce),
+                (err) => err.message === aes.gcm.INVALID_KEY_ERROR
+            );
+        });
+        it('throws an error on missing key', async function() {
+            await assert.rejects(
+                () => aes.gcm.decrypt(undefined, encrypted, correctNonce),
+                (err) => err.message === aes.gcm.INVALID_KEY_ERROR
+            );
         });
     });
 
@@ -159,9 +188,7 @@ describe('aes.gcm', function() {
 
     describe('aes.gcm.validateNonce', function() {
         it('does not throw on a valid 12-character nonce', function() {
-            assert.doesNotThrow(() => {
-                aes.gcm.validateNonce(correctNonce);
-            });
+            assert.doesNotThrow(() => { aes.gcm.validateNonce(correctNonce); });
         });
         it('throws an error on a nonce shorter than 12 characters', function() {
             assert.throws(() => {
@@ -177,9 +204,7 @@ describe('aes.gcm', function() {
 
     describe('aes.gcm.validateKey', function() {
         it('does not throw on a valid 32-character key', function() {
-            assert.doesNotThrow(() => {
-                aes.gcm.validateKey(validKey);
-            });
+            assert.doesNotThrow(() => { aes.gcm.validateKey(validKey); });
         });
         it('throws an error on a key shorter than 32 characters', function() {
             assert.throws(() => {

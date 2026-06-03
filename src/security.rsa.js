@@ -1,67 +1,61 @@
-﻿const crypto = require('crypto');
-// NOTE: at present there is no way to browserify the crypto module, otherwise we
-//       could use the crypto module's generateKeyPair methods
-//       see https://medium.com/@yuvrajkakkar1/crypto-nodejs-encryption-issue-rsa-padding-add-pkcs1-type-1-data-too-large-for-key-size-e5e8a52ce8fc
-const NodeRSA = require('node-rsa');
-
-function generateKeysSync(keySize) {
-    if (!keySize) {
-        throw new Error(rsa.INVALID_CALL_WITHOUT_KEYSIZE);
-    }
-    // convert keySize to number or throw error if not a number
-    keySize = Number(keySize);
-    if (isNaN(keySize) || keySize % 8 !== 0) {
-        throw new Error(rsa.INVALID_CALL_WITH_INVALID_KEYSIZE);
-    }
-    const startTime = new Date().getTime();
-    let key = new NodeRSA({ b: keySize });
-    const endTime = new Date().getTime();
-
-    return {
-        'keySize': keySize,
-        'time': endTime - startTime,
-        'private': key.exportKey('pkcs1-private-pem'),
-        'public': key.exportKey('pkcs8-public-pem')
-    };
-}
+﻿const NodeRSA = require('node-rsa').default;
 
 let rsa = {
     INVALID_CALL_WITHOUT_KEYSIZE: 'generateKeys called without keySize argument',
     INVALID_CALL_WITH_INVALID_KEYSIZE: 'Key size must be a number and a multiple of 8.',
 
     // both parameters must be strings, publicKey PEM formatted
-    encrypt: function (publicKey, message) {
-        let buffer = Buffer.from(message);
-        let encrypted = crypto.publicEncrypt(
-            {
-                key: publicKey,
-                padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-                oaepHash: 'sha256'
-            },
-            buffer
+    encrypt: async function (publicKey, message) {
+        const keyObj = await globalThis.crypto.subtle.importKey(
+            'spki',
+            pemToDer(publicKey),
+            { name: 'RSA-OAEP', hash: 'SHA-256' },
+            false,
+            ['encrypt']
         );
-        return encrypted.toString('base64');
+        const msgBytes = new TextEncoder().encode(message);
+        const encrypted = await globalThis.crypto.subtle.encrypt(
+            { name: 'RSA-OAEP' }, keyObj, msgBytes
+        );
+        return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
     },
 
-    // both parameters must be strings, publicKey PEM formatted
-    decrypt: function (privateKey, message) {
-        let buffer = Buffer.from(message, 'base64');
-        let decrypted = crypto.privateDecrypt(
-            {
-                key: privateKey,
-                padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-                oaepHash: 'sha256'
-            },
-            buffer
+    // both parameters must be strings, privateKey PEM formatted
+    decrypt: async function (privateKey, message) {
+        const keyObj = await globalThis.crypto.subtle.importKey(
+            'pkcs8',
+            pemToDer(privateKey),
+            { name: 'RSA-OAEP', hash: 'SHA-256' },
+            false,
+            ['decrypt']
         );
-        return decrypted.toString('utf8');
+        const msgBytes = Uint8Array.from(atob(message), c => c.charCodeAt(0));
+        const decrypted = await globalThis.crypto.subtle.decrypt(
+            { name: 'RSA-OAEP' }, keyObj, msgBytes
+        );
+        return new TextDecoder().decode(decrypted);
     },
 
     // generate PEM formatted public / private key pair asynchronously
     generateKeys: function (keySize, next) {
         return new Promise((resolve, reject) => {
             try {
-                const keys = generateKeysSync(keySize);
+                if (!keySize) {
+                    throw new Error(rsa.INVALID_CALL_WITHOUT_KEYSIZE);
+                }
+                keySize = Number(keySize);
+                if (isNaN(keySize) || keySize % 8 !== 0) {
+                    throw new Error(rsa.INVALID_CALL_WITH_INVALID_KEYSIZE);
+                }
+                const startTime = new Date().getTime();
+                let key = new NodeRSA({ b: keySize });
+                const endTime = new Date().getTime();
+                const keys = {
+                    keySize: keySize,
+                    time: endTime - startTime,
+                    private: key.exportKey('pkcs8-private-pem'),
+                    public: key.exportKey('pkcs8-public-pem')
+                };
                 if (next) {
                     next(null, keys);
                 }
@@ -75,17 +69,23 @@ let rsa = {
         });
     },
 
-    generateKeysSync: generateKeysSync,
-
     sign: function(privateKey, message) {
         let key = new NodeRSA(privateKey);
-        return key.sign(message).toString('base64');
+        return key.sign(message, 'base64');
     },
 
     verify: function(publicKey, message, signature) {
         let key = new NodeRSA(publicKey);
-        return key.verify(message, Buffer.from(signature, 'base64'));
+        return key.verify(message, signature, 'utf8', 'base64');
     }
 };
+
+function pemToDer(pem) {
+    const b64 = pem.replace(/-----[^-]+-----/g, '').replace(/\s+/g, '');
+    const binary = atob(b64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes.buffer;
+}
 
 module.exports = rsa;
