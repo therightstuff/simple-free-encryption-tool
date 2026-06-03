@@ -195,3 +195,27 @@ encrypted = sfet.aes.gcm.encrypt(gcmKey, 'secret aes message', nonce);
 decrypted = sfet.aes.gcm.decrypt(gcmKey, encrypted, nonce);
 console.log('aes gcm decrypted ' + decrypted);
 ```
+
+## Utils API: `utils.randomstring`
+
+The `utils.randomstring` object provides a simple utility for generating random alphanumeric strings. **This is an internal implementation** (not the npm `randomstring` package) and uses `globalThis.crypto.getRandomValues()` to ensure browser and Node.js compatibility.
+
+**Method:** `utils.randomstring.generate(options)`
+
+- **`options`** (number or object, optional):
+  - If a number: generates a string of that length (e.g., `generate(32)` creates a 32-character string).
+  - If an object: `{ length: number, charset: string }` to customize the character set.
+  - If omitted: defaults to `length: 32` with charset `'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'`.
+
+**Example:**
+
+```javascript
+// Generate a 32-character random string
+let key = sfet.utils.randomstring.generate(32);
+
+// Generate a 16-character string using defaults
+let value = sfet.utils.randomstring.generate(16);
+
+// Generate with custom charset
+let hex = sfet.utils.randomstring.generate({ length: 16, charset: '0123456789abcdef' });
+```

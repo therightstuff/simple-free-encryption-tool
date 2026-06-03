@@ -20,21 +20,28 @@
                 toastr.success('MD5 hash generated');
             }
 
-            function hashSHA256(){
+            async function hashSHA256(){
                 let plaintext = $('#sha256Plaintext').val();
-                let hash = sfet.sha256.hash(plaintext);
-                $('#sha256Hash').val(hash);
-                toastr.success('SHA-256 hash generated');
+                try {
+                    let hash = await sfet.sha256.hash(plaintext);
+                    $('#sha256Hash').val(hash);
+                    toastr.success('SHA-256 hash generated');
+                } catch (error){
+                    toastr.error(error.message);
+                }
             }
 
-            function generateKeys(){
+            async function generateKeys(){
                 toastr.info('generating keys');
-                setTimeout(async ()=> {
+                try {
+                    await new Promise((resolve) => setTimeout(resolve, 750));
                     keys = await sfet.rsa.generateKeys($('#keySize').val());
                     toastr.success(keys.keySize + '-bit keys generated in ' + keys.time + 'ms');
                     $('#rsaPublicKey').val(keys.public);
                     $('#rsaPrivateKey').val(keys.private);
-                }, 750);
+                } catch (error){
+                    toastr.error(error.message);
+                }
             }
 
             function updateRSAKeys(){
@@ -43,13 +50,13 @@
                 toastr.success('RSA keys updated');
             }
 
-            function encryptRSA() {
+            async function encryptRSA() {
                 if (!keys || !keys.public || keys.public.length == 0){
                     return toastr.error('RSA Public Key required');
                 }
                 let plaintext = $('#rsaPlaintext').val();
                 try {
-                    let encrypted = sfet.rsa.encrypt(keys.public, plaintext);
+                    let encrypted = await sfet.rsa.encrypt(keys.public, plaintext);
                     $('#rsaEncryptedText').val(encrypted);
                     toastr.success('RSA encryption successful');
                 } catch (error){
@@ -57,13 +64,13 @@
                 }
             }
 
-            function decryptRSA() {
+            async function decryptRSA() {
                 if (!keys || !keys.private || keys.private.length == 0){
                     return toastr.error('RSA Private Key required');
                 }
                 let encrypted = $('#rsaEncryptedText').val();
                 try {
-                    let decrypted = sfet.rsa.decrypt(keys.private, encrypted);
+                    let decrypted = await sfet.rsa.decrypt(keys.private, encrypted);
                     $('#rsaPlaintext').val(decrypted);
                     toastr.success('RSA decryption successful');
                 } catch (error){
@@ -134,7 +141,7 @@
                 );
             }
 
-            function encryptAESText() {
+            async function encryptAESText() {
                 let mode = $('#aesModeSelector').val();
                 let key = $('#aesKey').val();
                 let plaintext = $('#aesPlaintext').val();
@@ -143,10 +150,10 @@
                     if (mode === 'cbc') {
                         let iv = $('#aesIv').val();
                         if (iv.length == 0) iv = null;
-                        encrypted = sfet.aes.cbc.encrypt(key, plaintext, iv);
+                        encrypted = await sfet.aes.cbc.encrypt(key, plaintext, iv);
                     } else {
                         let nonce = $('#aesNonce').val();
-                        encrypted = sfet.aes.gcm.encrypt(key, plaintext, nonce);
+                        encrypted = await sfet.aes.gcm.encrypt(key, plaintext, nonce);
                     }
                     $('#aesEncryptedText').val(encrypted);
                     toastr.success('AES-' + mode.toUpperCase() + ' encryption successful');
@@ -155,7 +162,7 @@
                 }
             }
 
-            function decryptAESText() {
+            async function decryptAESText() {
                 let mode = $('#aesModeSelector').val();
                 let key = $('#aesKey').val();
                 let encrypted = $('#aesEncryptedText').val();
@@ -164,10 +171,10 @@
                     if (mode === 'cbc') {
                         let iv = $('#aesIv').val();
                         if (iv.length == 0) iv = null;
-                        decrypted = sfet.aes.cbc.decrypt(key, encrypted, iv);
+                        decrypted = await sfet.aes.cbc.decrypt(key, encrypted, iv);
                     } else {
                         let nonce = $('#aesNonce').val();
-                        decrypted = sfet.aes.gcm.decrypt(key, encrypted, nonce);
+                        decrypted = await sfet.aes.gcm.decrypt(key, encrypted, nonce);
                     }
                     $('#aesPlaintext').val(decrypted);
                     toastr.success('AES-' + mode.toUpperCase() + ' decryption successful');
@@ -204,7 +211,7 @@
                 let reader = new FileReader();
                 let file = $('#aesSourceFile')[0].files[0];
                 reader.readAsDataURL(file);
-                reader.onload = function () {
+                reader.onload = async function () {
                     // strip metadata, encrypt the rest, then reattach
                     let contentIndex = reader.result.indexOf('base64,') + 'base64'.length + 1;
                     let metadata = reader.result.substr(0, contentIndex);
@@ -215,10 +222,10 @@
                         if (mode === 'cbc') {
                             let iv = $('#aesIv').val();
                             if (iv.length == 0) iv = null;
-                            encrypted = sfet.aes.cbc.encrypt(key, content, iv);
+                            encrypted = await sfet.aes.cbc.encrypt(key, content, iv);
                         } else {
                             let nonce = $('#aesNonce').val();
-                            encrypted = sfet.aes.gcm.encrypt(key, content, nonce);
+                            encrypted = await sfet.aes.gcm.encrypt(key, content, nonce);
                         }
                         $('#aesResultFile').attr('href', metadata + encrypted);
 
@@ -254,7 +261,7 @@
                 let reader = new FileReader();
                 let file = $('#aesSourceFile')[0].files[0];
                 reader.readAsDataURL(file);
-                reader.onload = function () {
+                reader.onload = async function () {
                     // strip metadata, decrypt the rest, then reattach
                     let contentIndex = reader.result.indexOf('base64,') + 'base64'.length + 1;
                     let metadata = reader.result.substr(0, contentIndex);
@@ -265,10 +272,10 @@
                         if (mode === 'cbc') {
                             let iv = $('#aesIv').val();
                             if (iv.length == 0) iv = null;
-                            decrypted = sfet.aes.cbc.decrypt(key, content, iv);
+                            decrypted = await sfet.aes.cbc.decrypt(key, content, iv);
                         } else {
                             let nonce = $('#aesNonce').val();
-                            decrypted = sfet.aes.gcm.decrypt(key, content, nonce);
+                            decrypted = await sfet.aes.gcm.decrypt(key, content, nonce);
                         }
                         $('#aesResultFile').attr('href', metadata + decrypted);
 

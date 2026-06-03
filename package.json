@@ -4,7 +4,7 @@
   "description": "Simple Free RSA / AES Encryption and Decryption",
   "main": "index.js",
   "scripts": {
-    "build": "npm run test && browserify src/windowSfet.js -o dist/js/windowSfet.js && echo 'Build complete.'",
+    "build": "npm run test && esbuild src/windowSfet.js --bundle --platform=browser --outfile=dist/js/windowSfet.js && echo 'Build complete.'",
     "test": "jest --coverage && coverage-badge-creator",
     "package-upgrade": "npx npm-check-updates -u"
   },
@@ -40,14 +40,14 @@
   },
   "homepage": "https://github.com/therightstuff/simple-free-encryption-tool#readme",
   "dependencies": {
-    "node-rsa": "^1.1.1",
-    "randomstring": "^1.3.1"
+    "md5": "^2.3.0",
+    "node-rsa": "^2.0.0"
   },
   "devDependencies": {
-    "browserify": "^17.0.1",
-    "coverage-badge-creator": "^2.0.1",
-    "jest": "^30.3.0",
-    "jest-environment-jsdom": "^30.3.0"
+    "coverage-badge-creator": "^2.2.0",
+    "esbuild": "^0.28.0",
+    "jest": "^30.4.2",
+    "jest-environment-jsdom": "^30.4.1"
   },
   "files": [
     "/src",

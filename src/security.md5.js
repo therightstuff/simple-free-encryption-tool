@@ -1,9 +1,5 @@
-﻿const crypto = require('crypto');
-
-let md5 = {
-	hash: function (message) {
-		return crypto.createHash('md5').update(message).digest("hex");
-	}
+﻿const md5 = {
+    hash: require('md5')
 };
 
 module.exports = md5;

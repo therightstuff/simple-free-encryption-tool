@@ -1,4 +1,4 @@
-const assert = require('assert');
+const assert = require('node:assert');
 const md5 = require('../src/security.md5');
 
 describe('md5', function() {
@@ -13,7 +13,7 @@ describe('md5', function() {
 
     describe('md5.hash() throws error', function() {
         it('throws an error on null value', function() {
-            assert.throws(() => md5.hash(), (err) => err.constructor.name === 'TypeError');
+            assert.throws(() => md5.hash(), (err) => err.message === 'Illegal argument undefined');
         });
     });
 });
