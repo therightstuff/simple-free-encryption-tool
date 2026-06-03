@@ -58,7 +58,7 @@
             cryptoKey,
             msgBytes
           );
-          return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
+          return btoa(String.fromCodePoint(...new Uint8Array(encrypted)));
         },
         decrypt: async function(key, message, iv) {
           iv = iv || cbc.NULL_IV;
@@ -75,7 +75,7 @@
           );
           let msgBytes;
           try {
-            msgBytes = Uint8Array.from(atob(message), (c) => c.charCodeAt(0));
+            msgBytes = Uint8Array.from(atob(message), (c) => c.codePointAt(0));
           } catch (err) {
             throw new Error(err.message || "AES-CBC decryption failed (invalid ciphertext)");
           }
@@ -127,7 +127,7 @@
             cryptoKey,
             msgBytes
           );
-          return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
+          return btoa(String.fromCodePoint(...new Uint8Array(encrypted)));
         },
         decrypt: async function(key, message, nonce) {
           gcm.validateKey(key);
@@ -143,7 +143,7 @@
           );
           let msgBytes;
           try {
-            msgBytes = Uint8Array.from(atob(message), (c) => c.charCodeAt(0));
+            msgBytes = Uint8Array.from(atob(message), (c) => c.codePointAt(0));
           } catch (err) {
             throw new Error(err.message || "AES-GCM decryption failed (invalid ciphertext)");
           }
@@ -5327,7 +5327,7 @@ ${PRIVATE_CLOSING}
             keyObj,
             msgBytes
           );
-          return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
+          return btoa(String.fromCodePoint(...new Uint8Array(encrypted)));
         },
         // both parameters must be strings, privateKey PEM formatted
         decrypt: async function(privateKey, message) {
@@ -5338,7 +5338,7 @@ ${PRIVATE_CLOSING}
             false,
             ["decrypt"]
           );
-          const msgBytes = Uint8Array.from(atob(message), (c) => c.charCodeAt(0));
+          const msgBytes = Uint8Array.from(atob(message), (c) => c.codePointAt(0));
           const decrypted = await globalThis.crypto.subtle.decrypt(
             { name: "RSA-OAEP" },
             keyObj,
@@ -5354,12 +5354,12 @@ ${PRIVATE_CLOSING}
                 throw new Error(rsa.INVALID_CALL_WITHOUT_KEYSIZE);
               }
               keySize = Number(keySize);
-              if (isNaN(keySize) || keySize % 8 !== 0) {
+              if (Number.isNaN(keySize) || keySize % 8 !== 0) {
                 throw new Error(rsa.INVALID_CALL_WITH_INVALID_KEYSIZE);
               }
-              const startTime = (/* @__PURE__ */ new Date()).getTime();
+              const startTime = Date.now();
               let key = new NodeRSA2({ b: keySize });
-              const endTime = (/* @__PURE__ */ new Date()).getTime();
+              const endTime = Date.now();
               const keys = {
                 keySize,
                 time: endTime - startTime,
@@ -5391,7 +5391,7 @@ ${PRIVATE_CLOSING}
         const b64 = pem.replace(/-----[^-]+-----/g, "").replace(/\s+/g, "");
         const binary = atob(b64);
         const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.codePointAt(i);
         return bytes.buffer;
       }
       module.exports = rsa;

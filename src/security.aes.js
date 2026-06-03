@@ -27,7 +27,7 @@ const cbc = {
         const encrypted = await globalThis.crypto.subtle.encrypt(
             { name: 'AES-CBC', iv: ivBytes }, cryptoKey, msgBytes
         );
-        return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
+        return btoa(String.fromCodePoint(...new Uint8Array(encrypted)));
     },
 
     decrypt: async function (key, message, iv) {
@@ -41,7 +41,7 @@ const cbc = {
         );
         let msgBytes;
         try {
-            msgBytes = Uint8Array.from(atob(message), c => c.charCodeAt(0));
+            msgBytes = Uint8Array.from(atob(message), c => c.codePointAt(0));
         } catch (err) {
             throw new Error(err.message || 'AES-CBC decryption failed (invalid ciphertext)');
         }
@@ -99,7 +99,7 @@ const gcm = {
         const encrypted = await globalThis.crypto.subtle.encrypt(
             { name: 'AES-GCM', iv: nonceBytes, tagLength: 128 }, cryptoKey, msgBytes
         );
-        return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
+        return btoa(String.fromCodePoint(...new Uint8Array(encrypted)));
     },
 
     decrypt: async function (key, message, nonce) {
@@ -112,7 +112,7 @@ const gcm = {
         );
         let msgBytes;
         try {
-            msgBytes = Uint8Array.from(atob(message), c => c.charCodeAt(0));
+            msgBytes = Uint8Array.from(atob(message), c => c.codePointAt(0));
         } catch (err) {
             throw new Error(err.message || 'AES-GCM decryption failed (invalid ciphertext)');
         }

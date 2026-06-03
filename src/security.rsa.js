@@ -17,7 +17,7 @@ let rsa = {
         const encrypted = await globalThis.crypto.subtle.encrypt(
             { name: 'RSA-OAEP' }, keyObj, msgBytes
         );
-        return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
+        return btoa(String.fromCodePoint(...new Uint8Array(encrypted)));
     },
 
     // both parameters must be strings, privateKey PEM formatted
@@ -29,7 +29,7 @@ let rsa = {
             false,
             ['decrypt']
         );
-        const msgBytes = Uint8Array.from(atob(message), c => c.charCodeAt(0));
+        const msgBytes = Uint8Array.from(atob(message), c => c.codePointAt(0));
         const decrypted = await globalThis.crypto.subtle.decrypt(
             { name: 'RSA-OAEP' }, keyObj, msgBytes
         );
@@ -44,12 +44,12 @@ let rsa = {
                     throw new Error(rsa.INVALID_CALL_WITHOUT_KEYSIZE);
                 }
                 keySize = Number(keySize);
-                if (isNaN(keySize) || keySize % 8 !== 0) {
+                if (Number.isNaN(keySize) || keySize % 8 !== 0) {
                     throw new Error(rsa.INVALID_CALL_WITH_INVALID_KEYSIZE);
                 }
-                const startTime = new Date().getTime();
+                const startTime = Date.now();
                 let key = new NodeRSA({ b: keySize });
-                const endTime = new Date().getTime();
+                const endTime = Date.now();
                 const keys = {
                     keySize: keySize,
                     time: endTime - startTime,
@@ -84,7 +84,7 @@ function pemToDer(pem) {
     const b64 = pem.replace(/-----[^-]+-----/g, '').replace(/\s+/g, '');
     const binary = atob(b64);
     const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.codePointAt(i);
     return bytes.buffer;
 }
 

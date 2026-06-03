@@ -133,7 +133,7 @@ describe('aes.gcm', function() {
         });
         it('uses fallback message when decode error has no message', async function() {
             const originalAtob = globalThis.atob;
-            globalThis.atob = () => { throw {}; };
+            globalThis.atob = () => { throw {}; }; // NOSONAR - we want to test the fallback error message when atob throws an error without a message
             try {
                 await assert.rejects(
                     () => aes.gcm.decrypt(validKey, 'any-ciphertext', correctNonce),
