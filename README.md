@@ -47,7 +47,7 @@ AES (Advanced Encryption Standard) comes in several variants based on **key size
 
 The top-level `aes.*` methods (`aes.encrypt`, `aes.decrypt`, `aes.generateIv`, `aes.validateIv`, `aes.validateKey`, `aes.generateKey`) are **deprecated**. They have been moved to the `aes.cbc` namespace; `aes.gcm` is now also available. Having a dedicated namespace per mode (`aes.cbc.*`, `aes.gcm.*`) keeps the API unambiguous.
 
-The key difference between the deprecated `aes.*` methods and `aes.cbc.*` is that the old methods **implicitly MD5-hashed** the supplied key, so any string length would work. **`aes.cbc` does not hash the key** — you must supply an exactly 32-character string. Use `sfet.utils.randomstring.generate(32)` to generate a valid key, or pass your own 32-character string.
+The key difference between the deprecated `aes.*` methods and `aes.cbc.*` is that the old methods **implicitly MD5-hashed** the supplied key, so any string length would work. **`aes.cbc` does not hash the key** — you must supply an exactly 32-character string. Use `await sfet.utils.randomstring.generate(32)` (or `sfet.utils.randomstring.generateSync(32)`) to generate a valid key, or pass your own 32-character string.
 
 The AES secret must be a 32-character string. `aes.cbc` enforces this directly; pass the key as-is (no hashing is applied).
 
@@ -91,7 +91,7 @@ The coverage badge will be updated automatically.
 <script language="javascript">
         // Call this code when the page is done loading.
         $(async function () {
-            alert('random 32 character string generated: ' + sfet.utils.randomstring.generate(32));
+            alert('random 32 character string generated: ' + await sfet.utils.randomstring.generate(32));
             alert('"secret md5 message" hashed: ' + await sfet.md5.hash('secret md5 message'));
             alert('"secret sha256 message" hashed: ' + await sfet.sha256.hash('secret sha256 message'));
 
@@ -121,7 +121,7 @@ The coverage badge will be updated automatically.
             alert('rsa signature valid: ' + sfet.rsa.verify(keys.public, "secret rsa message", signature))
 
             // aes.cbc requires an exactly 32-character key
-            let aesCbcKey = sfet.utils.randomstring.generate(32);
+            let aesCbcKey = await sfet.utils.randomstring.generate(32);
 
             // using default iv of '0000000000000000'
             encrypted = await sfet.aes.cbc.encrypt(aesCbcKey, 'secret aes (cbc) message');
@@ -136,7 +136,7 @@ The coverage badge will be updated automatically.
 
             // aes.gcm: authenticated encryption — nonce is mandatory and must be
             // unique per (key, message) pair. Never reuse a nonce with the same key.
-            let aesGcmKey = sfet.utils.randomstring.generate(32);
+            let aesGcmKey = await sfet.utils.randomstring.generate(32);
             let nonce = sfet.aes.gcm.generateNonce(); // generate a fresh nonce every time
             encrypted = await sfet.aes.gcm.encrypt(aesGcmKey, 'secret aes (gcm) message', nonce);
             decrypted = await sfet.aes.gcm.decrypt(aesGcmKey, encrypted, nonce);
@@ -197,7 +197,7 @@ const sfet = require('simple-free-encryption-tool');
 
     // aes.gcm: authenticated encryption — nonce is mandatory and must be
     // unique per (key, message) pair. Never reuse a nonce with the same key.
-    const gcmKey = sfet.utils.randomstring.generate(32);
+    const gcmKey = await sfet.utils.randomstring.generate(32);
     const nonce = sfet.aes.gcm.generateNonce(); // generate a fresh nonce every time
     encrypted = await sfet.aes.gcm.encrypt(gcmKey, 'secret aes message', nonce);
     decrypted = await sfet.aes.gcm.decrypt(gcmKey, encrypted, nonce);
@@ -209,7 +209,10 @@ const sfet = require('simple-free-encryption-tool');
 
 The `utils.randomstring` object provides a simple utility for generating random alphanumeric strings. **This is an internal implementation** (not the npm `randomstring` package) and uses `globalThis.crypto.getRandomValues()` to ensure browser and Node.js compatibility.
 
-**Method:** `utils.randomstring.generate(options)`
+**Methods:**
+
+- `utils.randomstring.generate(options)` (async)
+- `utils.randomstring.generateSync(options)` (sync)
 
 - **`options`** (number or object, optional):
   - If a number: generates a string of that length (e.g., `generate(32)` creates a 32-character string).
@@ -219,12 +222,17 @@ The `utils.randomstring` object provides a simple utility for generating random 
 **Example:**
 
 ```javascript
-// Generate a 32-character random string
-let key = sfet.utils.randomstring.generate(32);
+async function examples() {
+    // Generate a 32-character random string
+    let key = await sfet.utils.randomstring.generate(32);
 
-// Generate a 16-character string using defaults
-let value = sfet.utils.randomstring.generate(16);
+    // Generate a 16-character string using defaults
+    let value = await sfet.utils.randomstring.generate(16);
 
-// Generate with custom charset
-let hex = sfet.utils.randomstring.generate({ length: 16, charset: '0123456789abcdef' });
+    // Generate with custom charset
+    let hex = await sfet.utils.randomstring.generate({ length: 16, charset: '0123456789abcdef' });
+}
+
+// Generate a 32-character random string synchronously
+let keySync = sfet.utils.randomstring.generateSync(32);
 ```

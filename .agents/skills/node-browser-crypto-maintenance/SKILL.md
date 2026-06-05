@@ -49,6 +49,7 @@ Use this skill whenever work may affect either runtime surface:
 - Update README usage and API notes for any behavior or semantics change.
 - Update dist/index.html text or UI behavior when runtime behavior or user guidance changes.
 - Ensure README and dist/index.html use matching guidance for key handling, IV/nonce handling, and async usage.
+- Sweep all occurrences of touched API symbols in README and dist/index.html (not only one section) and verify each call site uses correct sync/async semantics.
 
 5. Validate completion.
 - Run targeted tests for changed behavior.
@@ -61,7 +62,7 @@ Use this skill whenever work may affect either runtime surface:
 - If change is implementation-only and user-visible behavior is unchanged:
   - Keep docs unchanged only after explicit verification that examples and guidance remain accurate.
 - If change affects behavior, validation, errors, or async/sync semantics:
-  - Update README and dist/index.html in the same change set.
+  - Update README and dist/index.html in the same change set, then perform an occurrence sweep for the touched APIs to catch stale examples.
 - If change affects only one runtime intentionally:
   - Add explicit runtime note in README and avoid ambiguous examples.
 
