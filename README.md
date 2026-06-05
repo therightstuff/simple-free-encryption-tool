@@ -11,7 +11,7 @@ Simple Free Encryption Tool (sfet) uses RSA and AES versions that are strong and
 
 Open and free for all to see, can be run stand-alone on a local machine for an extra sense of security; all functionality runs entirely locally once the page has been loaded.
 
-Latest client version be loaded directly from the GitHub repo [here](http://htmlpreview.github.io/?https://github.com/therightstuff/simple-free-encryption-tool/blob/master/dist/index.html).
+Latest client version can be loaded directly from the [GitHub HTML preview](http://htmlpreview.github.io/?https://github.com/therightstuff/simple-free-encryption-tool/blob/master/dist/index.html).
 As that service hasn't been working lately (due to CORS issues, apparently), I've also made it available on [industrialcuriosity.com](https://industrialcuriosity.com/sfet).
 
 If you've found this tool useful, [please consider making a donation](https://www.industrialcuriosity.com/p/donate.html)!
@@ -59,6 +59,13 @@ The AES secret must be a 32-character string. `aes.cbc` enforces this directly; 
 
 Signing messages and verifying signatures with `simple-free-encryption-tool` are performed using the SHA-256 hashing algorithm.
 
+### Synchronous APIs: `randomstring`, `md5`, `sha256`
+
+- `randomstring.generate`, `md5.hash(message)` and `sha256.hash(message)` are async and return a Promise.
+- `randomstring.generateSync()`, `md5.hashSync(message)`, and `sha256.hashSync(message)` are synchronous and return the result directly. These are available in both browser and Node.js environments, but be aware that synchronous hashing can block the main thread in a browser, so use with caution.
+
+All hash methods require a defined, non-null message argument.
+
 ## Installation
 
 ```bash
@@ -83,10 +90,10 @@ The coverage badge will be updated automatically.
 
 <script language="javascript">
         // Call this code when the page is done loading.
-        $(function () {
+        $(async function () {
             alert('random 32 character string generated: ' + sfet.utils.randomstring.generate(32));
-            alert('"secret md5 message" hashed: ' + sfet.md5.hash('secret md5 message'));
-            alert('"secret sha256 message" hashed: ' + sfet.sha256.hash('secret sha256 message'));
+            alert('"secret md5 message" hashed: ' + await sfet.md5.hash('secret md5 message'));
+            alert('"secret sha256 message" hashed: ' + await sfet.sha256.hash('secret sha256 message'));
 
             let keySize = 2048;
 
@@ -103,8 +110,8 @@ The coverage badge will be updated automatically.
             let keys = sfet.rsa.generateKeysSync(keySize);
             alert('loaded in ' + keys.time);
 
-            let encrypted = sfet.rsa.encrypt(keys.public, "secret rsa message");
-            let decrypted = sfet.rsa.decrypt(keys.private, encrypted);
+            let encrypted = await sfet.rsa.encrypt(keys.public, "secret rsa message");
+            let decrypted = await sfet.rsa.decrypt(keys.private, encrypted);
             alert('rsa decrypted ' + decrypted);
 
             // signing an rsa message
@@ -113,26 +120,26 @@ The coverage badge will be updated automatically.
             // verifying an rsa signature
             alert('rsa signature valid: ' + sfet.rsa.verify(keys.public, "secret rsa message", signature))
 
-            // aes.cbc requires an exactly 32-character key (no more implicit MD5 hashing)
+            // aes.cbc requires an exactly 32-character key
             let aesCbcKey = sfet.utils.randomstring.generate(32);
 
             // using default iv of '0000000000000000'
-            encrypted = sfet.aes.cbc.encrypt(aesCbcKey, 'secret aes (cbc) message');
-            decrypted = sfet.aes.cbc.decrypt(aesCbcKey, encrypted);
+            encrypted = await sfet.aes.cbc.encrypt(aesCbcKey, 'secret aes (cbc) message');
+            decrypted = await sfet.aes.cbc.decrypt(aesCbcKey, encrypted);
             alert('aes cbc decrypted ' + decrypted);
 
             // using generated iv
             let iv = sfet.aes.cbc.generateIv();
-            encrypted = sfet.aes.cbc.encrypt(aesCbcKey, 'secret aes (cbc) message', iv);
-            decrypted = sfet.aes.cbc.decrypt(aesCbcKey, encrypted, iv);
+            encrypted = await sfet.aes.cbc.encrypt(aesCbcKey, 'secret aes (cbc) message', iv);
+            decrypted = await sfet.aes.cbc.decrypt(aesCbcKey, encrypted, iv);
             alert('aes cbc decrypted ' + decrypted);
 
             // aes.gcm: authenticated encryption — nonce is mandatory and must be
             // unique per (key, message) pair. Never reuse a nonce with the same key.
             let aesGcmKey = sfet.utils.randomstring.generate(32);
             let nonce = sfet.aes.gcm.generateNonce(); // generate a fresh nonce every time
-            encrypted = sfet.aes.gcm.encrypt(aesGcmKey, 'secret aes (gcm) message', nonce);
-            decrypted = sfet.aes.gcm.decrypt(aesGcmKey, encrypted, nonce);
+            encrypted = await sfet.aes.gcm.encrypt(aesGcmKey, 'secret aes (gcm) message', nonce);
+            decrypted = await sfet.aes.gcm.decrypt(aesGcmKey, encrypted, nonce);
             alert('aes gcm decrypted ' + decrypted);
         });
     </script>
@@ -144,56 +151,58 @@ The coverage badge will be updated automatically.
 ```javascript
 const sfet = require('simple-free-encryption-tool');
 
-console.log('random 32 character string generated: ' + sfet.utils.randomstring.generate(32));
-console.log('"secret md5 message" hashed: ' + sfet.md5.hash('secret md5 message'));
-console.log('"secret sha256 message" hashed: ' + sfet.sha256.hash('secret sha256 message'));
+(async () => {
+    console.log('random 32 character string generated: ' + await sfet.utils.randomstring.generate(32));
+    console.log('"secret md5 message" hashed: ' + await sfet.md5.hash('secret md5 message'));
+    console.log('"secret sha256 message" hashed: ' + await sfet.sha256.hash('secret sha256 message'));
 
-let keySize = 2048;
+    const keySize = 2048;
 
-// generateKeys() runs key generation asynchronously
-// this can be called with a callback:
-sfet.rsa.generateKeys(keySize, (error, asyncKeys) => {
+    // generateKeys() runs key generation asynchronously
+    // this can be called with a callback:
+    sfet.rsa.generateKeys(keySize, (error, asyncKeys) => {
+        console.log(`${asyncKeys.keySize}-bit key pair generated asynchronously in ${asyncKeys.time}ms`);
+    });
+    // or async/await:
+    const asyncKeys = await sfet.rsa.generateKeys(keySize);
     console.log(`${asyncKeys.keySize}-bit key pair generated asynchronously in ${asyncKeys.time}ms`);
-});
-// or async/await:
-let asyncKeys = await sfet.rsa.generateKeys(keySize);
-console.log(`${asyncKeys.keySize}-bit key pair generated asynchronously in ${asyncKeys.time}ms`);
 
-// generateKeysSync() runs key generation synchronously
-let keys = sfet.rsa.generateKeysSync(keySize);
-console.log(`${keys.keySize}-bit key pair generated synchronously in ${keys.time}ms`);
+    // generateKeysSync() runs key generation synchronously
+    const keys = sfet.rsa.generateKeysSync(keySize);
+    console.log(`${keys.keySize}-bit key pair generated synchronously in ${keys.time}ms`);
 
-let encrypted = sfet.rsa.encrypt(keys.public, "secret rsa message");
-let decrypted = sfet.rsa.decrypt(keys.private, encrypted);
-console.log('rsa decrypted ' + decrypted);
+    let encrypted = await sfet.rsa.encrypt(keys.public, "secret rsa message");
+    let decrypted = await sfet.rsa.decrypt(keys.private, encrypted);
+    console.log('rsa decrypted ' + decrypted);
 
-// signing an rsa message
-let signature = sfet.rsa.sign(keys.private, "secret rsa message");
-console.log('rsa signature ' + signature);
-// verifying an rsa signature
-console.log('rsa signature valid: ' + sfet.rsa.verify(keys.public, "secret rsa message", signature))
+    // signing an rsa message
+    const signature = sfet.rsa.sign(keys.private, "secret rsa message");
+    console.log('rsa signature ' + signature);
+    // verifying an rsa signature
+    console.log('rsa signature valid: ' + sfet.rsa.verify(keys.public, "secret rsa message", signature))
 
-// aes.cbc requires an exactly 32-character key (no implicit MD5 hashing)
-const aesKey = sfet.utils.randomstring.generate(32);
+    // aes.cbc requires an exactly 32-character key
+    const aesKey = await sfet.utils.randomstring.generate(32);
 
-// using default iv of '0000000000000000'
-encrypted = sfet.aes.cbc.encrypt(aesKey, 'secret aes message');
-decrypted = sfet.aes.cbc.decrypt(aesKey, encrypted);
-console.log('aes cbc decrypted ' + decrypted);
+    // using default iv of '0000000000000000'
+    encrypted = await sfet.aes.cbc.encrypt(aesKey, 'secret aes message');
+    decrypted = await sfet.aes.cbc.decrypt(aesKey, encrypted);
+    console.log('aes cbc decrypted ' + decrypted);
 
-// using generated iv
-const iv = sfet.aes.cbc.generateIv();
-encrypted = sfet.aes.cbc.encrypt(aesKey, 'secret aes message', iv);
-decrypted = sfet.aes.cbc.decrypt(aesKey, encrypted, iv);
-console.log('aes cbc decrypted ' + decrypted);
+    // using generated iv
+    const iv = sfet.aes.cbc.generateIv();
+    encrypted = await sfet.aes.cbc.encrypt(aesKey, 'secret aes message', iv);
+    decrypted = await sfet.aes.cbc.decrypt(aesKey, encrypted, iv);
+    console.log('aes cbc decrypted ' + decrypted);
 
-// aes.gcm: authenticated encryption — nonce is mandatory and must be
-// unique per (key, message) pair. Never reuse a nonce with the same key.
-const gcmKey = sfet.utils.randomstring.generate(32);
-const nonce = sfet.aes.gcm.generateNonce(); // generate a fresh nonce every time
-encrypted = sfet.aes.gcm.encrypt(gcmKey, 'secret aes message', nonce);
-decrypted = sfet.aes.gcm.decrypt(gcmKey, encrypted, nonce);
-console.log('aes gcm decrypted ' + decrypted);
+    // aes.gcm: authenticated encryption — nonce is mandatory and must be
+    // unique per (key, message) pair. Never reuse a nonce with the same key.
+    const gcmKey = sfet.utils.randomstring.generate(32);
+    const nonce = sfet.aes.gcm.generateNonce(); // generate a fresh nonce every time
+    encrypted = await sfet.aes.gcm.encrypt(gcmKey, 'secret aes message', nonce);
+    decrypted = await sfet.aes.gcm.decrypt(gcmKey, encrypted, nonce);
+    console.log('aes gcm decrypted ' + decrypted);
+})();
 ```
 
 ## Utils API: `utils.randomstring`

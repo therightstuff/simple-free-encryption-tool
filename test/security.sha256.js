@@ -11,9 +11,29 @@ describe('sha256', function() {
         });
     });
 
+    describe('sha256.hashSync(plaintext) = expectedHash', function() {
+        it('should return expected hash for plaintext', function() {
+            assert.strictEqual(sha256.hashSync(plaintext), expectedHash);
+        });
+    });
+
     describe('sha256.hash() throws error', function() {
-        it('throws an error on null value', async function() {
+        it('throws an error on undefined value', async function() {
             await assert.rejects(() => sha256.hash(), (err) => err.constructor.name === 'TypeError');
+        });
+
+        it('throws an error on null value', async function() {
+            await assert.rejects(() => sha256.hash(null), (err) => err.constructor.name === 'TypeError');
+        });
+    });
+
+    describe('sha256.hashSync() throws error', function() {
+        it('throws an error on undefined value', function() {
+            assert.throws(() => sha256.hashSync(), (err) => err.constructor.name === 'TypeError');
+        });
+
+        it('throws an error on null value', function() {
+            assert.throws(() => sha256.hashSync(null), (err) => err.constructor.name === 'TypeError');
         });
     });
 });
