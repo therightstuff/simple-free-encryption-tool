@@ -13,9 +13,9 @@
         <script language="javascript">
             var keys = {};
 
-            function hashMD5(){
+            async function hashMD5(){
                 let plaintext = $('#md5Plaintext').val();
-                let hash = sfet.md5.hash(plaintext);
+                let hash = await sfet.md5.hash(plaintext);
                 $('#md5Hash').val(hash);
                 toastr.success('MD5 hash generated');
             }
@@ -123,9 +123,9 @@
                 }
             }
 
-            function generateRandomKey(){
+            async function generateRandomKey(){
                 $('#aesKey').val(
-                    sfet.utils.randomstring.generate()
+                    await sfet.utils.randomstring.generate()
                 );
             }
 
