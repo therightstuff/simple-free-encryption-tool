@@ -46,7 +46,7 @@
   },
   "devDependencies": {
     "coverage-badge-creator": "^2.2.0",
-    "esbuild": "^0.28.1",
+    "esbuild": "^0.28.2",
     "jest": "^30.4.2",
     "jest-environment-jsdom": "^30.4.1"
   },
