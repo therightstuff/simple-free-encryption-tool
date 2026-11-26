@@ -1,8 +1,19 @@
-﻿const INVALID_IV_ERROR = "Invalid iv, 16-character string required";
+﻿const INVALID_IV_ERROR = "Invalid iv, 32 hex digits or a legacy 16-character string required";
 const INVALID_KEY_ERROR = "Invalid key, 32-character string required";
-const INVALID_GCM_NONCE_ERROR = "Invalid nonce, 12-character string required";
+const INVALID_GCM_NONCE_ERROR = "Invalid nonce, 24 hex digits or a legacy 12-character string required";
 const NULL_IV = "0000000000000000";
 
+
+function randomHex(byteLength) {
+    const bytes = globalThis.crypto.getRandomValues(new Uint8Array(byteLength));
+    return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+// Older versions passed fixed-length strings to Web Crypto as UTF-8.
+function parameterBytes(value, legacyLength) {
+    if (value.length === legacyLength) return new TextEncoder().encode(value);
+    return Uint8Array.from(value.match(/../g), pair => parseInt(pair, 16));
+}
 
 const cbc = {
     INVALID_IV_ERROR: INVALID_IV_ERROR,
@@ -12,14 +23,13 @@ const cbc = {
     algorithm: 'AES-CBC',
 
     encrypt: async function (key, message, iv) {
-        iv = iv || cbc.NULL_IV;
         cbc.validateKey(key);
         cbc.validateIv(iv);
         if (message === null || message === undefined) {
             throw new TypeError('The "data" argument must be a string');
         }
         const keyBytes = new TextEncoder().encode(key);
-        const ivBytes = new TextEncoder().encode(iv);
+        const ivBytes = parameterBytes(iv, 16);
         const cryptoKey = await globalThis.crypto.subtle.importKey(
             'raw', keyBytes, { name: 'AES-CBC' }, false, ['encrypt']
         );
@@ -31,11 +41,14 @@ const cbc = {
     },
 
     decrypt: async function (key, message, iv) {
-        iv = iv || cbc.NULL_IV;
+        if (!iv) {
+            console.warn('Legacy AES-CBC decryption without an IV uses a fixed IV. The security of this ciphertext is not guaranteed.');
+            iv = NULL_IV;
+        }
         cbc.validateKey(key);
         cbc.validateIv(iv);
         const keyBytes = new TextEncoder().encode(key);
-        const ivBytes = new TextEncoder().encode(iv);
+        const ivBytes = parameterBytes(iv, 16);
         const cryptoKey = await globalThis.crypto.subtle.importKey(
             'raw', keyBytes, { name: 'AES-CBC' }, false, ['decrypt']
         );
@@ -52,13 +65,11 @@ const cbc = {
     },
 
     generateIv: function () {
-        const bytes = new Uint8Array(8);
-        globalThis.crypto.getRandomValues(bytes);
-        return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
+        return randomHex(16);
     },
 
     validateIv: function(iv) {
-        if (iv?.length != 16) {
+        if (typeof iv !== 'string' || (iv.length !== 16 && !/^[0-9a-f]{32}$/i.test(iv))) {
             throw new Error(cbc.INVALID_IV_ERROR);
         }
     },
@@ -91,7 +102,7 @@ const gcm = {
             throw new TypeError('The "data" argument must be a string');
         }
         const keyBytes = new TextEncoder().encode(key);
-        const nonceBytes = new TextEncoder().encode(nonce);
+        const nonceBytes = parameterBytes(nonce, 12);
         const cryptoKey = await globalThis.crypto.subtle.importKey(
             'raw', keyBytes, { name: 'AES-GCM' }, false, ['encrypt']
         );
@@ -106,7 +117,7 @@ const gcm = {
         gcm.validateKey(key);
         gcm.validateNonce(nonce);
         const keyBytes = new TextEncoder().encode(key);
-        const nonceBytes = new TextEncoder().encode(nonce);
+        const nonceBytes = parameterBytes(nonce, 12);
         const cryptoKey = await globalThis.crypto.subtle.importKey(
             'raw', keyBytes, { name: 'AES-GCM' }, false, ['decrypt']
         );
@@ -127,13 +138,11 @@ const gcm = {
     },
 
     generateNonce: function () {
-        const bytes = new Uint8Array(6);
-        globalThis.crypto.getRandomValues(bytes);
-        return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 12);
+        return randomHex(12);
     },
 
     validateNonce: function (nonce) {
-        if (nonce?.length != 12) {
+        if (typeof nonce !== 'string' || (nonce.length !== 12 && !/^[0-9a-f]{24}$/i.test(nonce))) {
             throw new Error(gcm.INVALID_NONCE_ERROR);
         }
     },
@@ -145,4 +154,4 @@ const gcm = {
     }
 };
 
-module.exports = { cbc, gcm };
+module.exports = { ...require('./sealed-message'), cbc, gcm };

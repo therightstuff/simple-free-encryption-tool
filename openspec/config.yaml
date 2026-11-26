@@ -1,0 +1,10 @@
+schema: spec-driven
+
+context: |
+  simple-free-encryption-tool provides JavaScript encryption for Node.js and browsers.
+  Write the README for a developer discovering the package on npmjs.com who may be new to cryptography.
+  Lead with a concrete reason to use the package, the npm install command, and a runnable example
+  that imports the package by name. The README ships with the code in the same release.
+  Verify examples against a locally packed copy of that release, including its new APIs.
+  Explain what the developer must save and what must stay secret. Link to public usage guides.
+  Preserve README badges and images unless the user explicitly authorizes their removal.
