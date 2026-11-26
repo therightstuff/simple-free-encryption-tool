@@ -35,16 +35,19 @@ describe('sealed messages', () => {
         expect(Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString()).toBe(text);
     });
 
-    it('rejects a different key and changes to the nonce, ciphertext or tag', async () => {
+    it('rejects a different key', async () => {
         const key = await aes.generateKey();
         const message = await aes.seal(key, 'message');
         await expect(aes.open(await aes.generateKey(), message)).rejects.toThrow();
+    });
+
+    it.each([0, 12, -1])('rejects tampering at byte %i', async offset => {
+        const key = await aes.generateKey();
+        const message = await aes.seal(key, 'message');
         const [format, encoded] = message.split('.');
-        for (const offset of [0, 12, -1]) {
-            const bytes = Buffer.from(encoded, 'base64');
-            bytes[(offset + bytes.length) % bytes.length] ^= 1;
-            await expect(aes.open(key, format + '.' + bytes.toString('base64'))).rejects.toThrow();
-        }
+        const bytes = Buffer.from(encoded, 'base64');
+        bytes[(offset + bytes.length) % bytes.length] ^= 1;
+        await expect(aes.open(key, format + '.' + bytes.toString('base64'))).rejects.toThrow();
     });
 
     it.each([null, 'sfet2.AAAA', 'sfet1.?', 'sfet1.AAAA'])('rejects malformed messages', async message => {

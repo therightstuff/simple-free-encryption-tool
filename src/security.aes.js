@@ -12,7 +12,7 @@ function randomHex(byteLength) {
 // Older versions passed fixed-length strings to Web Crypto as UTF-8.
 function parameterBytes(value, legacyLength) {
     if (value.length === legacyLength) return new TextEncoder().encode(value);
-    return Uint8Array.from(value.match(/../g), pair => parseInt(pair, 16));
+    return Uint8Array.from(value.match(/../g), pair => Number.parseInt(pair, 16));
 }
 
 const cbc = {

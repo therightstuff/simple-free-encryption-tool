@@ -8,3 +8,4 @@ context: |
   Verify examples against a locally packed copy of that release, including its new APIs.
   Explain what the developer must save and what must stay secret. Link to public usage guides.
   Preserve README badges and images unless the user explicitly authorizes their removal.
+  Keep the local review-learnings record at .docs/review-learnings.md.

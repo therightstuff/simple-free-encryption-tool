@@ -8,13 +8,30 @@ const browser = await chromium.launch({
 });
 try {
     const page = await browser.newPage();
-    // A loopback origin provides a secure context for native browser Web Crypto.
+    // Serve the actual demo on a secure loopback origin for browser Web Crypto.
+    const demo = new URL('../dist/', import.meta.url);
     await page.route('http://localhost/', route => route.fulfill({
         contentType: 'text/html',
-        body: '<!doctype html><title>Browser interoperability test</title>'
+        path: fileURLToPath(new URL('index.html', demo))
     }));
+    await page.route(/^http:\/\/localhost\/(?:js|css)\/[\w.-]+$/, route => {
+        const asset = new URL(route.request().url()).pathname.slice(1);
+        return route.fulfill({ path: fileURLToPath(new URL(asset, demo)) });
+    });
     await page.goto('http://localhost/');
-    await page.addScriptTag({ path: fileURLToPath(new URL('../dist/js/windowSfet.js', import.meta.url)) });
+    const demoFields = {
+        'Select AES mode:': 'aesModeSelector',
+        'Key (32 chars):': 'aesKey',
+        'IV:': 'aesIv',
+        'Nonce:': 'aesNonce',
+        'Input type:': 'aesSelector',
+        'Source File:': 'aesSourceFile',
+        'Unencrypted text': 'aesPlaintext',
+        'Encrypted text': 'aesEncryptedText'
+    };
+    await Promise.all(Object.entries(demoFields).map(async ([label, id]) => {
+        assert.equal(await page.getByLabel(label, { exact: true }).getAttribute('id'), id);
+    }));
 
     // Transfer a disposable key explicitly to exercise independent Web Crypto runtimes.
     const portable = await sfet.aes.generateKey({ extractable: true });
@@ -36,7 +53,7 @@ try {
     console.log('Sealed messages passed in both directions');
 
     const key = sfet.utils.randomstring.generateSync(32);
-    for (const mode of ['cbc', 'gcm']) {
+    await Promise.all(['cbc', 'gcm'].map(async mode => {
         const cipher = sfet.aes[mode];
         const parameter = mode === 'cbc' ? cipher.generateIv() : cipher.generateNonce();
         const ciphertext = await cipher.encrypt(key, 'Node → browser', parameter);
@@ -49,7 +66,7 @@ try {
         assert.equal(result.plaintext, 'Node → browser');
         assert.equal(await cipher.decrypt(key, result.encrypted, result.fresh), 'Browser → Node');
         console.log(`AES-${mode.toUpperCase()} passed in both directions`);
-    }
+    }));
 } finally {
     await browser.close();
 }

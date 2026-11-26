@@ -22,7 +22,7 @@ function parameters(iv) {
 function encode(bytes) {
     let binary = '';
     for (let offset = 0; offset < bytes.length; offset += 8192) {
-        binary += String.fromCharCode(...bytes.subarray(offset, offset + 8192));
+        binary += String.fromCodePoint(...bytes.subarray(offset, offset + 8192));
     }
     return btoa(binary);
 }
@@ -53,7 +53,7 @@ function decodePayload(message) {
     if (binary.length < nonceSize + tagSize || btoa(binary) !== encoded) {
         throw new Error('Invalid sealed message encoding');
     }
-    return Uint8Array.from(binary, char => char.charCodeAt(0));
+    return Uint8Array.from(binary, char => char.codePointAt(0));
 }
 
 function extractIv(message) {

@@ -55,7 +55,7 @@
       function encode(bytes) {
         let binary = "";
         for (let offset = 0; offset < bytes.length; offset += 8192) {
-          binary += String.fromCharCode(...bytes.subarray(offset, offset + 8192));
+          binary += String.fromCodePoint(...bytes.subarray(offset, offset + 8192));
         }
         return btoa(binary);
       }
@@ -84,7 +84,7 @@
         if (binary.length < nonceSize + tagSize || btoa(binary) !== encoded) {
           throw new Error("Invalid sealed message encoding");
         }
-        return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+        return Uint8Array.from(binary, (char) => char.codePointAt(0));
       }
       function extractIv(message) {
         return decodePayload(message).subarray(0, nonceSize);
@@ -122,7 +122,7 @@
       }
       function parameterBytes(value, legacyLength) {
         if (value.length === legacyLength) return new TextEncoder().encode(value);
-        return Uint8Array.from(value.match(/../g), (pair) => parseInt(pair, 16));
+        return Uint8Array.from(value.match(/../g), (pair) => Number.parseInt(pair, 16));
       }
       var cbc = {
         INVALID_IV_ERROR,
