@@ -109,9 +109,9 @@
 
             function updateAesMode() {
                 let mode = $('#aesModeSelector').val();
-                let cbcDesc = 'AES-256-CBC (Cipher Block Chaining) encrypts each plaintext block by XOR-ing it with the previous ciphertext block before encryption. It requires a 32-character key and a 16-character hexadecimal IV (Initialization Vector). Using the same key and IV always produces the same ciphertext, so each IV should ideally be unique per message.';
-                let gcmDesc = '<b>AES-256-GCM (Galois/Counter Mode)</b> is an authenticated encryption (AEAD) mode that provides both confidentiality and integrity verification in a single pass. It requires a 32-character key and a 12-character nonce.<br /><br />' +
-                    '<span style="color:#cc0000;"><b>&#9888; NONCE WARNING:</b> Never reuse a nonce with the same key.</span> GCM nonce reuse completely destroys both confidentiality and authentication &mdash; it exposes the keystream and can allow an attacker to recover both plaintexts and potentially the authentication key. Always click <b>Generate Nonce</b> for every new encryption operation.';
+                let cbcDesc = 'Encryption generates a fresh IV. Save it with the ciphertext. For legacy decryption only, leave the IV blank to use the historical fixed IV. CBC cannot detect tampering.';
+                let gcmDesc = '<b>AES-256-GCM</b> encrypts text and checks it for changes. A nonce means &ldquo;number used once.&rdquo; It gives each encryption with the same key a fresh starting value. ' +
+                    'The demo generates a new 12-byte nonce for each encryption. Save it with the ciphertext so you can decrypt it later. Reusing a nonce with the same key can expose messages and allow forgeries.';
                 if (mode === 'cbc') {
                     $('#aesModeDescription').html(cbcDesc);
                     $('#aesIvRow').show();
@@ -129,16 +129,17 @@
                 );
             }
 
-            function generateIv() {
-                $('#aesIv').val(
-                    sfet.aes.cbc.generateIv()
-                );
-            }
-
-            function generateNonce() {
-                $('#aesNonce').val(
-                    sfet.aes.gcm.generateNonce()
-                );
+            async function encryptWithFreshParameter(mode, key, message) {
+                if (mode === 'cbc') {
+                    const iv = sfet.aes.cbc.generateIv();
+                    const encrypted = await sfet.aes.cbc.encrypt(key, message, iv);
+                    $('#aesIv').val(iv);
+                    return encrypted;
+                }
+                const nonce = sfet.aes.gcm.generateNonce();
+                const encrypted = await sfet.aes.gcm.encrypt(key, message, nonce);
+                $('#aesNonce').val(nonce);
+                return encrypted;
             }
 
             async function encryptAESText() {
@@ -146,15 +147,7 @@
                 let key = $('#aesKey').val();
                 let plaintext = $('#aesPlaintext').val();
                 try {
-                    let encrypted;
-                    if (mode === 'cbc') {
-                        let iv = $('#aesIv').val();
-                        if (iv.length == 0) iv = null;
-                        encrypted = await sfet.aes.cbc.encrypt(key, plaintext, iv);
-                    } else {
-                        let nonce = $('#aesNonce').val();
-                        encrypted = await sfet.aes.gcm.encrypt(key, plaintext, nonce);
-                    }
+                    const encrypted = await encryptWithFreshParameter(mode, key, plaintext);
                     $('#aesEncryptedText').val(encrypted);
                     toastr.success('AES-' + mode.toUpperCase() + ' encryption successful');
                 } catch (error){
@@ -218,15 +211,7 @@
                     let content = reader.result.substr(contentIndex);
 
                     try {
-                        let encrypted;
-                        if (mode === 'cbc') {
-                            let iv = $('#aesIv').val();
-                            if (iv.length == 0) iv = null;
-                            encrypted = await sfet.aes.cbc.encrypt(key, content, iv);
-                        } else {
-                            let nonce = $('#aesNonce').val();
-                            encrypted = await sfet.aes.gcm.encrypt(key, content, nonce);
-                        }
+                        const encrypted = await encryptWithFreshParameter(mode, key, content);
                         $('#aesResultFile').attr('href', metadata + encrypted);
 
                         // get filename from (fake) full path
@@ -308,7 +293,7 @@
                 if (window.File && window.FileReader && window.FileList && window.Blob) {
                     console.log('file handling available');
                     $('#aesSelectorDiv').html(
-                        '<br /><select id="aesSelector">' +
+                        '<br /><label for="aesSelector">Input type:</label> <select id="aesSelector">' +
                         '<option value="text">Text</option>' +
                         '<option value="file">Binary File</option>' +
                         '</select>'
@@ -397,7 +382,7 @@
             If your browser supports it, you will be able to encrypt and decrypt files from this interface.
             The file metadata (eg. MIME type) will not be encrypted, only the file contents.
         </div>
-        <h2>MD5</h2>
+        <h2>MD5 (legacy checksums only)</h2>
         <table>
             <thead>
                 <tr>
@@ -406,11 +391,11 @@
             </thead>
             <tbody>
             <tr>
-                <td colspan="2" class="align-center"><button onclick="hashMD5()">Hash!</button></td>
+                <td colspan="2" class="align-center"><button onclick="hashMD5()">Calculate legacy checksum</button></td>
             </tr>
             <tr>
                 <td>Initial text</td>
-                <td>MD5 Hash</td>
+                <td>MD5 checksum</td>
             </tr>
             <tr>
                 <td><textarea id="md5Plaintext"></textarea></td>
@@ -494,11 +479,14 @@
         </table>
 
         <h2>AES</h2>
+        <p>Want to encrypt text in your app? Start with the
+            <a href="https://github.com/therightstuff/simple-free-encryption-tool#try-it-in-nodejs">npm quick start</a>.
+            The controls below are for working with a specific encryption format.</p>
         <div>
-            Select AES mode:
+            <label for="aesModeSelector">Select AES mode:</label>
             <select id="aesModeSelector" onchange="updateAesMode()">
                 <option value="cbc">CBC &mdash; Cipher Block Chaining</option>
-                <option value="gcm">GCM &mdash; Galois/Counter Mode (Authenticated)</option>
+                <option value="gcm" selected>GCM &mdash; Galois/Counter Mode (Authenticated)</option>
             </select>
             <br /><br />
             <div id="aesModeDescription" style="max-width:500px; text-align:left; margin: 0 auto;"></div>
@@ -512,16 +500,16 @@
             </thead>
             <tbody>
                 <tr>
-                    <td class="align-right">Key (32 chars): <input id="aesKey" /></td>
+                    <td class="align-right"><label for="aesKey">Key (32 chars):</label> <input id="aesKey" /></td>
                     <td class="align-left"><button onclick="generateRandomKey()">Generate random key</button>
                 </tr>
                 <tr id="aesIvRow">
-                    <td class="align-right">IV (16 chars): <input id="aesIv" /></td>
-                    <td class="align-left"><button onclick="generateIv()">Generate IV</button></td>
+                    <td class="align-right"><label for="aesIv">IV:</label> <input id="aesIv" /></td>
+                    <td class="align-left">Save with the ciphertext.</td>
                 </tr>
                 <tr id="aesNonceRow" style="display:none">
-                    <td class="align-right">Nonce (12 chars): <input id="aesNonce" /></td>
-                    <td class="align-left"><button onclick="generateNonce()">Generate Nonce</button></td>
+                    <td class="align-right"><label for="aesNonce">Nonce:</label> <input id="aesNonce" /></td>
+                    <td class="align-left">Save with the ciphertext.</td>
                 </tr>
                 <tr>
                     <td colspan="2" class="align-center">
@@ -533,7 +521,7 @@
                         <td class="align-center"><button onclick="decryptAESFile()">Decrypt</button></td>
                 </tr>
                 <tr class="aesFileOptions">
-                    <td colspan="2">Source File: <input type="file" id="aesSourceFile" /></td>
+                    <td colspan="2"><label for="aesSourceFile">Source File:</label> <input type="file" id="aesSourceFile" /></td>
                 </tr>
                 <tr class="aesFileOptions">
                     <td colspan="2">Result File: <a id="aesResultFile" href="data:application/octet-stream;charset=utf-8;base64,Zm9vIGJhcg==">Download Result</a></td>
@@ -543,8 +531,8 @@
                     <td class="align-center"><button onclick="decryptAESText()">Decrypt</button></td>
                 </tr>
                 <tr class="aesTextOptions">
-                    <td>Unencrypted text</td>
-                    <td>Encrypted text</td>
+                    <td><label for="aesPlaintext">Unencrypted text</label></td>
+                    <td><label for="aesEncryptedText">Encrypted text</label></td>
                 </tr>
                 <tr class="aesTextOptions">
                     <td><textarea id="aesPlaintext"></textarea></td>

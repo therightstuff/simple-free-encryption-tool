@@ -25,6 +25,9 @@ jobs:
       - name: Run tests
         run: npm test
 
+      - name: Check Node and Chrome AES interoperability
+        run: npm run test:browser
+
       - name: Run build
         run: npm run build
 

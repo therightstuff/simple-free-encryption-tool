@@ -178,8 +178,8 @@ describe('aes.gcm', function() {
     });
 
     describe('aes.gcm.generateNonce', function() {
-        it('returns a 12-character string', function() {
-            assert.strictEqual(aes.gcm.generateNonce().length, 12);
+        it('returns a hex-encoded 96-bit nonce', function() {
+            expect(aes.gcm.generateNonce()).toMatch(/^[0-9a-f]{24}$/);
         });
         it('returns different values on successive calls', function() {
             assert.notStrictEqual(aes.gcm.generateNonce(), aes.gcm.generateNonce());

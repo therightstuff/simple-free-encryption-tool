@@ -33,27 +33,110 @@
   };
   var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
+  // src/sealed-message.js
+  var require_sealed_message = __commonJS({
+    "src/sealed-message.js"(exports, module) {
+      var format = "sfet1";
+      var header = new TextEncoder().encode(format);
+      var nonceSize = 12;
+      var tagSize = 16;
+      async function generateKey({ extractable = false } = {}) {
+        if (typeof extractable !== "boolean") throw new TypeError("extractable must be a boolean");
+        return globalThis.crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, extractable, ["encrypt", "decrypt"]);
+      }
+      function checkKey(key) {
+        if (key?.algorithm?.name !== "AES-GCM" || key.algorithm.length !== 256) {
+          throw new TypeError("An AES-256-GCM CryptoKey is required");
+        }
+      }
+      function parameters(iv) {
+        return { name: "AES-GCM", iv, additionalData: header, tagLength: tagSize * 8 };
+      }
+      function encode(bytes) {
+        let binary = "";
+        for (let offset = 0; offset < bytes.length; offset += 8192) {
+          binary += String.fromCodePoint(...bytes.subarray(offset, offset + 8192));
+        }
+        return btoa(binary);
+      }
+      async function seal(key, plaintext) {
+        checkKey(key);
+        if (typeof plaintext !== "string") throw new TypeError("Plaintext must be a string");
+        if (/[\uD800-\uDFFF]/u.test(plaintext)) throw new TypeError("Plaintext contains an unpaired surrogate");
+        const nonce = globalThis.crypto.getRandomValues(new Uint8Array(nonceSize));
+        const encrypted = await globalThis.crypto.subtle.encrypt(parameters(nonce), key, new TextEncoder().encode(plaintext));
+        const payload = new Uint8Array(nonceSize + encrypted.byteLength);
+        payload.set(nonce);
+        payload.set(new Uint8Array(encrypted), nonceSize);
+        return format + "." + encode(payload);
+      }
+      function decodePayload(message) {
+        if (typeof message !== "string" || !message.startsWith(format + ".")) {
+          throw new Error("Unsupported sealed message format");
+        }
+        const encoded = message.slice(format.length + 1);
+        let binary;
+        try {
+          binary = atob(encoded);
+        } catch {
+          throw new Error("Invalid sealed message encoding");
+        }
+        if (binary.length < nonceSize + tagSize || btoa(binary) !== encoded) {
+          throw new Error("Invalid sealed message encoding");
+        }
+        return Uint8Array.from(binary, (char) => char.codePointAt(0));
+      }
+      function extractIv(message) {
+        return decodePayload(message).subarray(0, nonceSize);
+      }
+      function extractCiphertext(message) {
+        return decodePayload(message).subarray(nonceSize, -tagSize);
+      }
+      function extractTag(message) {
+        return decodePayload(message).subarray(-tagSize);
+      }
+      async function open(key, message) {
+        checkKey(key);
+        const payload = decodePayload(message);
+        const decrypted = await globalThis.crypto.subtle.decrypt(
+          parameters(payload.subarray(0, nonceSize)),
+          key,
+          payload.subarray(nonceSize)
+        );
+        return new TextDecoder("utf-8", { ignoreBOM: true }).decode(decrypted);
+      }
+      module.exports = { generateKey, seal, open, extractIv, extractCiphertext, extractTag };
+    }
+  });
+
   // src/security.aes.js
   var require_security_aes = __commonJS({
     "src/security.aes.js"(exports, module) {
-      var INVALID_IV_ERROR = "Invalid iv, 16-character string required";
+      var INVALID_IV_ERROR = "Invalid iv, 32 hex digits or a legacy 16-character string required";
       var INVALID_KEY_ERROR = "Invalid key, 32-character string required";
-      var INVALID_GCM_NONCE_ERROR = "Invalid nonce, 12-character string required";
+      var INVALID_GCM_NONCE_ERROR = "Invalid nonce, 24 hex digits or a legacy 12-character string required";
       var NULL_IV = "0000000000000000";
+      function randomHex(byteLength) {
+        const bytes = globalThis.crypto.getRandomValues(new Uint8Array(byteLength));
+        return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+      }
+      function parameterBytes(value, legacyLength) {
+        if (value.length === legacyLength) return new TextEncoder().encode(value);
+        return Uint8Array.from(value.match(/../g), (pair) => Number.parseInt(pair, 16));
+      }
       var cbc = {
         INVALID_IV_ERROR,
         INVALID_KEY_ERROR,
         NULL_IV,
         algorithm: "AES-CBC",
         encrypt: async function(key, message, iv) {
-          iv = iv || cbc.NULL_IV;
           cbc.validateKey(key);
           cbc.validateIv(iv);
           if (message === null || message === void 0) {
             throw new TypeError('The "data" argument must be a string');
           }
           const keyBytes = new TextEncoder().encode(key);
-          const ivBytes = new TextEncoder().encode(iv);
+          const ivBytes = parameterBytes(iv, 16);
           const cryptoKey = await globalThis.crypto.subtle.importKey(
             "raw",
             keyBytes,
@@ -70,11 +153,14 @@
           return btoa(String.fromCodePoint(...new Uint8Array(encrypted)));
         },
         decrypt: async function(key, message, iv) {
-          iv = iv || cbc.NULL_IV;
+          if (!iv) {
+            console.warn("Legacy AES-CBC decryption without an IV uses a fixed IV. The security of this ciphertext is not guaranteed.");
+            iv = NULL_IV;
+          }
           cbc.validateKey(key);
           cbc.validateIv(iv);
           const keyBytes = new TextEncoder().encode(key);
-          const ivBytes = new TextEncoder().encode(iv);
+          const ivBytes = parameterBytes(iv, 16);
           const cryptoKey = await globalThis.crypto.subtle.importKey(
             "raw",
             keyBytes,
@@ -96,12 +182,10 @@
           return new TextDecoder().decode(decrypted);
         },
         generateIv: function() {
-          const bytes = new Uint8Array(8);
-          globalThis.crypto.getRandomValues(bytes);
-          return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 16);
+          return randomHex(16);
         },
         validateIv: function(iv) {
-          if (iv?.length != 16) {
+          if (typeof iv !== "string" || iv.length !== 16 && !/^[0-9a-f]{32}$/i.test(iv)) {
             throw new Error(cbc.INVALID_IV_ERROR);
           }
         },
@@ -122,7 +206,7 @@
             throw new TypeError('The "data" argument must be a string');
           }
           const keyBytes = new TextEncoder().encode(key);
-          const nonceBytes = new TextEncoder().encode(nonce);
+          const nonceBytes = parameterBytes(nonce, 12);
           const cryptoKey = await globalThis.crypto.subtle.importKey(
             "raw",
             keyBytes,
@@ -142,7 +226,7 @@
           gcm.validateKey(key);
           gcm.validateNonce(nonce);
           const keyBytes = new TextEncoder().encode(key);
-          const nonceBytes = new TextEncoder().encode(nonce);
+          const nonceBytes = parameterBytes(nonce, 12);
           const cryptoKey = await globalThis.crypto.subtle.importKey(
             "raw",
             keyBytes,
@@ -168,12 +252,10 @@
           }
         },
         generateNonce: function() {
-          const bytes = new Uint8Array(6);
-          globalThis.crypto.getRandomValues(bytes);
-          return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 12);
+          return randomHex(12);
         },
         validateNonce: function(nonce) {
-          if (nonce?.length != 12) {
+          if (typeof nonce !== "string" || nonce.length !== 12 && !/^[0-9a-f]{24}$/i.test(nonce)) {
             throw new Error(gcm.INVALID_NONCE_ERROR);
           }
         },
@@ -183,7 +265,7 @@
           }
         }
       };
-      module.exports = { cbc, gcm };
+      module.exports = { ...require_sealed_message(), cbc, gcm };
     }
   });
 
@@ -5435,7 +5517,7 @@ ${PRIVATE_CLOSING}
           if (message.constructor === ArrayBuffer) {
             return [new Uint8Array(message), false];
           } else if (ArrayBuffer.isView(message)) {
-            return [message, false];
+            return [new Uint8Array(message.buffer, message.byteOffset, message.byteLength), false];
           }
         }
         throw new Error(INPUT_ERROR);
@@ -5587,7 +5669,7 @@ ${PRIVATE_CLOSING}
         var result = formatMessage(message);
         message = result[0];
         var isString = result[1];
-        var code, index = 0, i, length = message.length, blocks2 = this.blocks;
+        var code, code2, index = 0, i, length = message.length, blocks2 = this.blocks;
         while (index < length) {
           if (this.hashed) {
             this.hashed = false;
@@ -5606,12 +5688,17 @@ ${PRIVATE_CLOSING}
                 blocks2[i >>> 2] |= (224 | code >>> 12) << SHIFT[i++ & 3];
                 blocks2[i >>> 2] |= (128 | code >>> 6 & 63) << SHIFT[i++ & 3];
                 blocks2[i >>> 2] |= (128 | code & 63) << SHIFT[i++ & 3];
-              } else {
-                code = 65536 + ((code & 1023) << 10 | message.charCodeAt(++index) & 1023);
+              } else if (code < 56320 && (code2 = message.charCodeAt(index + 1)) >= 56320 && code2 < 57344) {
+                ++index;
+                code = 65536 + ((code & 1023) << 10 | code2 & 1023);
                 blocks2[i >>> 2] |= (240 | code >>> 18) << SHIFT[i++ & 3];
                 blocks2[i >>> 2] |= (128 | code >>> 12 & 63) << SHIFT[i++ & 3];
                 blocks2[i >>> 2] |= (128 | code >>> 6 & 63) << SHIFT[i++ & 3];
                 blocks2[i >>> 2] |= (128 | code & 63) << SHIFT[i++ & 3];
+              } else {
+                blocks2[i >>> 2] |= 239 << SHIFT[i++ & 3];
+                blocks2[i >>> 2] |= 191 << SHIFT[i++ & 3];
+                blocks2[i >>> 2] |= 189 << SHIFT[i++ & 3];
               }
             }
           } else {
@@ -5798,7 +5885,7 @@ ${PRIVATE_CLOSING}
         var i, result = formatMessage(key);
         key = result[0];
         if (result[1]) {
-          var bytes = [], length = key.length, index = 0, code;
+          var bytes = [], length = key.length, index = 0, code, code2;
           for (i = 0; i < length; ++i) {
             code = key.charCodeAt(i);
             if (code < 128) {
@@ -5810,12 +5897,17 @@ ${PRIVATE_CLOSING}
               bytes[index++] = 224 | code >>> 12;
               bytes[index++] = 128 | code >>> 6 & 63;
               bytes[index++] = 128 | code & 63;
-            } else {
-              code = 65536 + ((code & 1023) << 10 | key.charCodeAt(++i) & 1023);
+            } else if (code < 56320 && (code2 = key.charCodeAt(i + 1)) >= 56320 && code2 < 57344) {
+              ++i;
+              code = 65536 + ((code & 1023) << 10 | code2 & 1023);
               bytes[index++] = 240 | code >>> 18;
               bytes[index++] = 128 | code >>> 12 & 63;
               bytes[index++] = 128 | code >>> 6 & 63;
               bytes[index++] = 128 | code & 63;
+            } else {
+              bytes[index++] = 239;
+              bytes[index++] = 191;
+              bytes[index++] = 189;
             }
           }
           key = bytes;
@@ -5929,7 +6021,7 @@ js-sha256/build/sha256.cjs:
   (**
    * [js-sha256]{@link https://github.com/emn178/js-sha256}
    *
-   * @version 1.0.0
+   * @version 1.1.0
    * @author Chen, Yi-Cyuan [emn178@gmail.com]
    * @copyright Chen, Yi-Cyuan 2014-2026
    * @license MIT

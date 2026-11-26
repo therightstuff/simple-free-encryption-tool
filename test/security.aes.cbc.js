@@ -12,14 +12,14 @@ describe('aes.cbc', function() {
     let incorrectIv = "notyourcorrectiv";
     let invalidIv = "invalidiv";
 
-    let encrypted, encryptedWithOtherIv, encryptedWithGeneratedIv, encryptedWithNullIv;
+    let encrypted, encryptedWithOtherIv, encryptedWithGeneratedIv;
     const expectedEncrypted = "4s1QNHkb3u17QxIqhJf8BA==";
 
     beforeAll(async function() {
         encrypted = await aes.cbc.encrypt(validKey, plaintext, correctIv);
         encryptedWithOtherIv = await aes.cbc.encrypt(validKey, plaintext, incorrectIv);
         encryptedWithGeneratedIv = await aes.cbc.encrypt(validKey, plaintext, generatedIv);
-        encryptedWithNullIv = await aes.cbc.encrypt(validKey, plaintext);
+
     });
 
     describe('aes.cbc.encrypt encrypts correctly', function() {
@@ -51,7 +51,15 @@ describe('aes.cbc', function() {
             assert.strictEqual(await aes.cbc.decrypt(validKey, encryptedWithGeneratedIv, generatedIv), plaintext);
         });
         it('returns correctly decrypted plaintext with default iv', async function() {
-            assert.strictEqual(await aes.cbc.decrypt(validKey, encryptedWithNullIv), plaintext);
+            const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+            try {
+                assert.strictEqual(await aes.cbc.decrypt(validKey, '3NTRpQsIu5VoDOi+Oi32fA=='), plaintext);
+                expect(warn).toHaveBeenCalledWith(expect.stringContaining('security of this ciphertext is not guaranteed'));
+                await aes.cbc.decrypt(validKey, encrypted, correctIv);
+                expect(warn).toHaveBeenCalledTimes(1);
+            } finally {
+                warn.mockRestore();
+            }
         });
         it('requires correct iv', async function() {
             assert.notStrictEqual(await aes.cbc.decrypt(validKey, encrypted, incorrectIv), plaintext);
@@ -59,6 +67,12 @@ describe('aes.cbc', function() {
     });
 
     describe('aes.cbc.encrypt handles invalid values', function() {
+        it.each([undefined, null, '', false])('rejects missing IV %p', async iv => {
+            await assert.rejects(aes.cbc.encrypt(validKey, plaintext, iv), { message: aes.cbc.INVALID_IV_ERROR });
+        });
+        it('generates a hex-encoded 128-bit IV', () => {
+            expect(generatedIv).toMatch(/^[0-9a-f]{32}$/);
+        });
         it('throws an error on invalid iv', async function() {
             await assert.rejects(
                 () => aes.cbc.encrypt(validKey, plaintext, invalidIv),
