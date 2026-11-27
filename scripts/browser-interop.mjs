@@ -1,3 +1,4 @@
+/* global fileActionFailure -- Defined by the demo and invoked inside page.evaluate. */
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -68,37 +69,39 @@ try {
         'aesPlaintext',
         'aesEncryptedText'
     ];
-    for (const id of labelableFields) {
+    await Promise.all(labelableFields.map(async (id) => {
         assert.equal(await page.locator(`#${id}`).evaluate(element => element.labels?.[0]?.htmlFor), id,
             `${id} must have an explicit label`);
-    }
+    }));
     assert.match(await page.locator('#rsaVerified').getAttribute('aria-label') ||
         await page.locator('#rsaVerified').getAttribute('aria-labelledby') || '', /.+/);
 
-    for (const id of ['demo-aes', 'demo-rsa', 'demo-sha256', 'demo-md5']) {
+    await Promise.all(['demo-aes', 'demo-rsa', 'demo-sha256', 'demo-md5'].map(async (id) => {
         assert.equal(await page.locator(`#${id}`).evaluate(element => element.open), true,
             `${id} must be expanded initially`);
-    }
+    }));
     assert.equal(await page.locator('#aesModeSelector').inputValue(), 'gcm');
-    for (const [statusId, fieldId] of [['aesKeyStatus', 'aesKey'], ['aesStatus', 'aesPlaintext'], ['aesDecryptStatus', 'aesEncryptedText']]) {
+    await Promise.all([['aesKeyStatus', 'aesKey'], ['aesStatus', 'aesPlaintext'], ['aesDecryptStatus', 'aesEncryptedText']].map(async ([statusId, fieldId]) => {
         assert.equal(await page.locator(`#${statusId}`).evaluate((status, id) => {
             const field = document.getElementById(id);
             return status.parentElement?.contains(field) && Boolean(status.compareDocumentPosition(field) & Node.DOCUMENT_POSITION_FOLLOWING);
         }, fieldId), true, `${statusId} must be directly above the field for its action`);
-    }
+    }));
     assert.equal(await page.locator('#rsaStatus').evaluate(status =>
         status.parentElement?.contains(document.querySelector('#generateRsaKeys'))), true,
     'RSA generation feedback must stay with its action control');
-    for (const statusId of ['rsaTextStatus', 'rsaSigningStatus']) {
+    await Promise.all(['rsaTextStatus', 'rsaSigningStatus'].map(async (statusId) => {
         assert.equal(await page.locator(`#${statusId}`).evaluate(status =>
             status.parentElement?.querySelectorAll('button').length === 2), true,
         `${statusId} must stay with its action controls`);
-    }
+    }));
+    /* eslint-disable no-await-in-loop -- One page shares viewport and mode; parallel changes would race the assertions. */
     for (const width of [390, 1280]) {
         await page.setViewportSize({ width, height: 900 });
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true,
             `demo must not overflow at ${width}px`);
     }
+    /* eslint-enable no-await-in-loop */
     const md5Summary = page.locator('#demo-md5 summary');
     await md5Summary.focus();
     await page.keyboard.press('Space');
@@ -123,17 +126,18 @@ try {
         'copy-aesPlaintext',
         'copy-aesEncryptedText',
     ];
-    for (const testId of copyControls) {
+    await Promise.all(copyControls.map(async (testId) => {
         const control = page.getByTestId(testId);
         assert.match(await control.getAttribute('aria-label') || '', /copy/i);
         assert.match(await control.getAttribute('title') || '', /copy/i);
-    }
-    for (const testId of ['download-rsaPublicKey', 'download-rsaPrivateKey']) {
+    }));
+    await Promise.all(['download-rsaPublicKey', 'download-rsaPrivateKey'].map(async (testId) => {
         const control = page.getByTestId(testId);
         assert.match(await control.getAttribute('aria-label') || '', /download|save/i);
         assert.match(await control.getAttribute('title') || '', /download|save/i);
         await assertIconFitsControl(control);
-    }
+    }));
+    /* eslint-disable no-await-in-loop -- One page shares viewport and mode; parallel changes would race the assertions. */
     for (const width of [390, 1280]) {
         await page.setViewportSize({ width, height: 900 });
         for (const testId of [...copyControls, 'download-rsaPublicKey', 'download-rsaPrivateKey']) {
@@ -142,6 +146,7 @@ try {
             await assertIconFitsControl(page.getByTestId(testId));
         }
     }
+    /* eslint-enable no-await-in-loop */
     await page.getByTestId('encrypt-rsa').click();
     await assertStatus(page, '#rsaTextStatus', /public key/i);
     await page.getByTestId('decrypt-rsa').click();
@@ -181,12 +186,12 @@ try {
     await assertStatus(page, '#aesStatus', /encryption successful/i);
     assert.equal((await page.getByTestId('aes-decrypt-status').textContent() || '').trim(), '',
         'successful encryption must not leave superseded AES decryption feedback visible');
-    for (const id of ['aesKey', 'aesIv', 'aesNonce', 'aesPlaintext', 'aesEncryptedText']) {
+    await Promise.all(['aesKey', 'aesIv', 'aesNonce', 'aesPlaintext', 'aesEncryptedText'].map(async (id) => {
         assert.equal(await page.locator(`#${id}`).getAttribute('aria-invalid'), null,
             `${id} must clear stale invalid state after successful AES encryption`);
         assert.equal(await page.locator(`#${id}`).evaluate(field => field.classList.contains('input-error')), false,
             `${id} must clear stale visual error state after successful AES encryption`);
-    }
+    }));
     await page.evaluate(() => {
         Object.defineProperty(navigator, 'clipboard', {
             configurable: true,
@@ -206,6 +211,7 @@ try {
         const prototype = Object.getPrototypeOf(navigator);
         Object.defineProperty(prototype, 'clipboard', { configurable: true, value: undefined });
         delete navigator.clipboard;
+        // eslint-disable-next-line no-restricted-properties -- This stub verifies the supported legacy clipboard fallback; removing it loses compatibility coverage.
         document.execCommand = command => {
             window.__sfetFallbackCommand = command;
             return command === 'copy';
@@ -300,22 +306,22 @@ try {
     await page.locator('#aesEncryptedText').fill('not-valid-ciphertext');
     await page.getByTestId('decrypt-aes').click();
     await assertStatus(page, '#aesDecryptStatus', /unable to decrypt/i);
-    for (const id of ['aesKey', 'aesNonce', 'aesEncryptedText']) {
+    await Promise.all(['aesKey', 'aesNonce', 'aesEncryptedText'].map(async (id) => {
         assert.equal(await page.locator(`#${id}`).getAttribute('aria-invalid'), 'true',
             `${id} must identify the failed AES decryption input`);
         assert.equal(await page.locator(`#${id}`).evaluate(field => field.classList.contains('input-error')), true,
             `${id} must visibly identify the failed AES decryption input`);
-    }
+    }));
     await page.locator('#aesEncryptedText').fill(ciphertextToDecrypt);
     await page.getByTestId('decrypt-aes').click();
     await page.waitForFunction(value => document.querySelector('#aesPlaintext').value === value, plaintext);
     await assertStatus(page, '#aesDecryptStatus', /decryption successful/i);
-    for (const id of ['aesKey', 'aesIv', 'aesNonce', 'aesPlaintext', 'aesEncryptedText']) {
+    await Promise.all(['aesKey', 'aesIv', 'aesNonce', 'aesPlaintext', 'aesEncryptedText'].map(async (id) => {
         assert.equal(await page.locator(`#${id}`).getAttribute('aria-invalid'), null,
             `${id} must clear stale invalid state after successful AES decryption`);
         assert.equal(await page.locator(`#${id}`).evaluate(field => field.classList.contains('input-error')), false,
             `${id} must clear stale visual error state after successful AES decryption`);
-    }
+    }));
     assert.deepEqual(actionRequests, []);
 
     assert.match(await page.evaluate(() => fileActionFailure('encrypted', {

@@ -51,28 +51,28 @@ describe('rsa', function() {
     describe('asynchronously generated key pair tests', function(){
         it(`(async) should generate result with keySize, time, public and private keys within ${keyGenerationTimeout}ms`, async function() {
             const generatedKeyPair = await rsa.generateKeys(testKeySize);
-            assert.strictEqual(generatedKeyPair.hasOwnProperty("keySize"), true);
+            assert.strictEqual(Object.hasOwn(generatedKeyPair, "keySize"), true);
             assert.strictEqual(generatedKeyPair.keySize, testKeySize);
-            assert.strictEqual(generatedKeyPair.hasOwnProperty("time"), true);
-            assert.strictEqual(generatedKeyPair.hasOwnProperty("public"), true);
-            assert.strictEqual(generatedKeyPair.hasOwnProperty("private"), true);
+            assert.strictEqual(Object.hasOwn(generatedKeyPair, "time"), true);
+            assert.strictEqual(Object.hasOwn(generatedKeyPair, "public"), true);
+            assert.strictEqual(Object.hasOwn(generatedKeyPair, "private"), true);
         });
         it(`(callback) should generate result with keySize, time, public and private keys within ${keyGenerationTimeout}ms`, function(done) {
             rsa.generateKeys(testKeySize, (err, generatedKeyPair) => {
                 if (err) {
                     done(err);
                 } else {
-                    assert.strictEqual(generatedKeyPair.hasOwnProperty("keySize"), true);
+                    assert.strictEqual(Object.hasOwn(generatedKeyPair, "keySize"), true);
                     assert.strictEqual(generatedKeyPair.keySize, testKeySize);
-                    assert.strictEqual(generatedKeyPair.hasOwnProperty("time"), true);
-                    assert.strictEqual(generatedKeyPair.hasOwnProperty("public"), true);
-                    assert.strictEqual(generatedKeyPair.hasOwnProperty("private"), true);
+                    assert.strictEqual(Object.hasOwn(generatedKeyPair, "time"), true);
+                    assert.strictEqual(Object.hasOwn(generatedKeyPair, "public"), true);
+                    assert.strictEqual(Object.hasOwn(generatedKeyPair, "private"), true);
                     done();
                 }
             });
         });
         it('(callback) throws an error when no keySize provided', function(done) {
-            rsa.generateKeys(null, (err, result) => {
+            rsa.generateKeys(null, (err) => {
                 if (err) {
                     if (err.message === rsa.INVALID_CALL_WITHOUT_KEYSIZE) {
                         return done();
@@ -88,7 +88,7 @@ describe('rsa', function() {
             });
         });
         it('(callback) resolves with an error when invalid keySize provided', function(done) {
-            rsa.generateKeys('asdf', (err, result) => {
+            rsa.generateKeys('asdf', (err) => {
                 if (err) {
                     if (err.message === rsa.INVALID_CALL_WITH_INVALID_KEYSIZE) {
                         return done();

@@ -7,6 +7,7 @@
         <script src="js/windowSfet.js"></script>
 
         <script language="javascript">
+            /* exported downloadRsaKey, hashMD5, hashSHA256, generateKeys, updateRSAKeys, encryptRSA, decryptRSA, signRSA, verifyRSA, generateRandomKey, encryptAESText, decryptAESText, encryptAESFile, decryptAESFile */
             var keys = {};
             let generatingKeys = false;
 
@@ -86,6 +87,7 @@
                 temporaryField.style.cssText = 'position:fixed; opacity:0; pointer-events:none;';
                 document.body.appendChild(temporaryField);
                 temporaryField.select();
+                // eslint-disable-next-line no-restricted-properties -- Older browsers without Clipboard API need this fallback; failures offer manual copying.
                 const copied = document.execCommand('copy');
                 temporaryField.remove();
                 if (focusedElement) focusedElement.focus();
@@ -107,7 +109,8 @@
                         fallbackCopy(value);
                     }
                     notify(statusId, 'success', label + ' copied to the clipboard.');
-                } catch (error) {
+                } catch {
+                    // Show a safe recovery message rather than exposing crypto or clipboard exception details.
                     notify(statusId, 'error', 'Could not copy ' + label + '. Select the value and copy it manually.', [fieldId]);
                 }
             }
@@ -154,7 +157,8 @@
                     let hash = await sfet.sha256.hash(plaintext);
                     $('#sha256Hash').val(hash);
                     completeAction(statusId, 'SHA-256 hash generated', ['sha256Plaintext']);
-                } catch (error){
+                } catch {
+                    // Show a safe recovery message rather than exposing crypto or clipboard exception details.
                     notify(statusId, 'error', 'Unable to calculate the SHA-256 hash. Check the input and try again.');
                 }
             }
@@ -175,7 +179,8 @@
                     $('#rsaPrivateKey').val(keys.private);
                     syncExportControls();
                     completeAction(statusId, keys.keySize + '-bit keys generated in ' + keys.time + 'ms', rsaFieldIds);
-                } catch (error){
+                } catch {
+                    // Show a safe recovery message rather than exposing crypto or clipboard exception details.
                     notify(statusId, 'error', 'Unable to generate RSA keys. Check the selected key size and try again.');
                 } finally {
                     generatingKeys = false;
@@ -200,7 +205,8 @@
                     let encrypted = await sfet.rsa.encrypt(keys.public, plaintext);
                     $('#rsaEncryptedText').val(encrypted);
                     completeAction(statusId, 'RSA encryption successful', rsaFieldIds);
-                } catch (error){
+                } catch {
+                    // Show a safe recovery message rather than exposing crypto or clipboard exception details.
                     notify(statusId, 'error', 'Unable to encrypt with this RSA public key. Check the key and message.', ['rsaPublicKey', 'rsaPlaintext']);
                 }
             }
@@ -215,7 +221,8 @@
                     let decrypted = await sfet.rsa.decrypt(keys.private, encrypted);
                     $('#rsaPlaintext').val(decrypted);
                     completeAction(statusId, 'RSA decryption successful', rsaFieldIds);
-                } catch (error){
+                } catch {
+                    // Show a safe recovery message rather than exposing crypto or clipboard exception details.
                     notify(statusId, 'error', 'Unable to decrypt with this RSA private key. Check the key and encrypted text.', ['rsaPrivateKey', 'rsaEncryptedText']);
                 }
             }
@@ -230,7 +237,8 @@
                     let signature = sfet.rsa.sign(keys.private, plaintext);
                     $('#rsaSignature').val(signature);
                     completeAction(statusId, 'Unencrypted text signed successfully', rsaFieldIds);
-                } catch (error){
+                } catch {
+                    // Show a safe recovery message rather than exposing crypto or clipboard exception details.
                     notify(statusId, 'error', 'Unable to sign this message. Check the private key and message.', ['rsaPrivateKey', 'rsaPlaintext']);
                 }
             }
@@ -246,7 +254,8 @@
                     let verified = sfet.rsa.verify(keys.public, plaintext, signature);
                     $('#rsaVerified').text(verified);
                     completeAction(statusId, 'Signature verified successfully', rsaFieldIds);
-                } catch (error){
+                } catch {
+                    // Show a safe recovery message rather than exposing crypto or clipboard exception details.
                     notify(statusId, 'error', 'Unable to verify this signature. Check the public key, message, and signature.', ['rsaPublicKey', 'rsaPlaintext', 'rsaSignature']);
                 }
             }
@@ -301,7 +310,8 @@
                     const encrypted = await encryptWithFreshParameter(mode, key, plaintext);
                     $('#aesEncryptedText').val(encrypted);
                     completeAction(statusId, 'AES-' + mode.toUpperCase() + ' encryption successful', aesTextFieldIds);
-                } catch (error){
+                } catch {
+                    // Show a safe recovery message rather than exposing crypto or clipboard exception details.
                     notify(statusId, 'error', 'Unable to encrypt this text. Check the key and message.', ['aesKey', 'aesPlaintext']);
                 }
             }
@@ -336,7 +346,8 @@
                     }
                     $('#aesPlaintext').val(decrypted);
                     completeAction(statusId, 'AES-' + mode.toUpperCase() + ' decryption successful', aesTextFieldIds);
-                } catch (error){
+                } catch {
+                    // Show a safe recovery message rather than exposing crypto or clipboard exception details.
                     notify(statusId, 'error', 'Unable to decrypt this text. Check the key, parameter, and encrypted text.', ['aesKey', 'aesEncryptedText', parameterId]);
                 }
             }
@@ -385,7 +396,7 @@
                         $('#aesResultFile').attr('href', metadata + encrypted);
 
                         // get filename from (fake) full path
-                        let strippedFilename = filename.replace(/^.*[\\\/]/, '');
+                        let strippedFilename = filename.replace(/^.*[\\/]/, '');
                         $('#aesResultFile').attr(
                             'download',
                             strippedFilename + '.encrypted'
@@ -393,11 +404,11 @@
 
                         completeAction(statusId, 'AES-' + mode.toUpperCase() + ' encryption successful', aesFileFieldIds);
                         $('#aesResultFile').show();
-                    } catch (error){
+                    } catch (error) {
                         notify(statusId, 'error', fileActionFailure('encrypted', error), ['aesSourceFile']);
                     }
                 };
-                reader.onerror = function (error) {
+                reader.onerror = function () {
                     return notify(statusId, 'error', 'The selected file could not be read. Choose the file again and retry.', ['aesSourceFile']);
                 };
             }
@@ -445,7 +456,7 @@
                         $('#aesResultFile').attr('href', metadata + decrypted);
 
                         // get filename from (fake) full path
-                        let strippedFilename = filename.replace(/^.*[\\\/]/, '');
+                        let strippedFilename = filename.replace(/^.*[\\/]/, '');
                         // remove '.encrypted' extension if it's there
                         let encryptedExtensionIndex = strippedFilename.lastIndexOf('.encrypted');
                         if (encryptedExtensionIndex >= 0) {
@@ -455,11 +466,11 @@
 
                         completeAction(statusId, 'AES-' + mode.toUpperCase() + ' decryption successful', aesFileFieldIds);
                         $('#aesResultFile').show();
-                    } catch (error){
+                    } catch (error) {
                         notify(statusId, 'error', fileActionFailure('decrypted', error), ['aesSourceFile']);
                     }
                 };
-                reader.onerror = function (error) {
+                reader.onerror = function () {
                     return notify(statusId, 'error', 'The selected file could not be read. Choose the file again and retry.', ['aesSourceFile']);
                 };
             }

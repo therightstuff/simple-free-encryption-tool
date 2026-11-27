@@ -56,6 +56,7 @@ const cbc = {
         try {
             msgBytes = Uint8Array.from(atob(message), c => c.codePointAt(0));
         } catch (err) {
+            // eslint-disable-next-line preserve-caught-error -- Preserve the public message-only error contract; attaching provider errors exposes extra crypto internals.
             throw new Error(err.message || 'AES-CBC decryption failed (invalid ciphertext)');
         }
         const decrypted = await globalThis.crypto.subtle.decrypt(
@@ -125,6 +126,7 @@ const gcm = {
         try {
             msgBytes = Uint8Array.from(atob(message), c => c.codePointAt(0));
         } catch (err) {
+            // eslint-disable-next-line preserve-caught-error -- Preserve the public message-only error contract; attaching provider errors exposes extra crypto internals.
             throw new Error(err.message || 'AES-GCM decryption failed (invalid ciphertext)');
         }
         try {
@@ -133,6 +135,7 @@ const gcm = {
             );
             return new TextDecoder().decode(decrypted);
         } catch (err) {
+            // eslint-disable-next-line preserve-caught-error -- Preserve the public message-only error contract; attaching provider errors exposes extra crypto internals.
             throw new Error(err.message || 'AES-GCM decryption failed (authentication error)');
         }
     },
