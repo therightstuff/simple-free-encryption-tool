@@ -2,108 +2,261 @@
 <html lang="en">
     <head>
         <title>Simple Free Encryption Tool</title>
-        <link rel="stylesheet" href="css/toastr.min.css" />
-
         <script src="js/jquery-3.1.1.min.js"></script>
 
         <script src="js/windowSfet.js"></script>
 
-        <script src="js/toastr.min.js"></script>
-
         <script language="javascript">
+            /* exported downloadRsaKey, hashMD5, hashSHA256, generateKeys, updateRSAKeys, encryptRSA, decryptRSA, signRSA, verifyRSA, generateRandomKey, encryptAESText, decryptAESText, encryptAESFile, decryptAESFile */
             var keys = {};
+            let generatingKeys = false;
+
+            function notify(statusId, type, message, fieldIds = []) {
+                const status = document.getElementById(statusId);
+                status.className = 'status status-' + type;
+                status.textContent = message;
+                fieldIds.forEach(markFieldError);
+            }
+
+            function markFieldError(fieldId) {
+                const field = document.getElementById(fieldId);
+                if (!field) return;
+                field.classList.add('input-error');
+                field.setAttribute('aria-invalid', 'true');
+            }
+
+            function clearFieldError(fieldId) {
+                const field = document.getElementById(fieldId);
+                if (!field) return;
+                field.classList.remove('input-error');
+                field.removeAttribute('aria-invalid');
+            }
+
+            function clearStatus(statusId) {
+                const status = document.getElementById(statusId);
+                if (!status) return;
+                status.classList.remove('status-success', 'status-error', 'status-info');
+                status.textContent = '';
+            }
+
+            function beginAction(statusId, fieldIds, supersededStatusIds = []) {
+                clearStatus(statusId);
+                fieldIds.forEach(clearFieldError);
+                supersededStatusIds.forEach(clearStatus);
+                return statusId;
+            }
+
+            function completeAction(statusId, message, fieldIds) {
+                fieldIds.forEach(clearFieldError);
+                notify(statusId, 'success', message);
+            }
+
+            const aesTextFieldIds = ['aesKey', 'aesIv', 'aesNonce', 'aesPlaintext', 'aesEncryptedText'];
+            const aesFileFieldIds = ['aesKey', 'aesIv', 'aesNonce', 'aesSourceFile'];
+            const rsaFieldIds = ['keySize', 'rsaPublicKey', 'rsaPrivateKey', 'rsaPlaintext', 'rsaEncryptedText', 'rsaSignature'];
+
+            function fileActionFailure(action, error) {
+                const message = error && error.message ? error.message : '';
+                if (/maximum call stack|invalid string length|too large/i.test(message)) {
+                    return 'The selected file is too large for this page to encode for download. It was not changed. Try a smaller file.';
+                }
+                return 'The selected file could not be ' + action + '. It was not changed. Try a smaller file; if it still fails, use another local encryption tool for this file.';
+            }
+
+            function statusForField(fieldId) {
+                if (fieldId === 'aesKey') return 'aesKeyStatus';
+                if (fieldId === 'aesEncryptedText') return 'aesDecryptStatus';
+                if (fieldId.startsWith('aes')) return 'aesStatus';
+                if (fieldId === 'rsaPlaintext' || fieldId === 'rsaEncryptedText') return 'rsaTextStatus';
+                if (fieldId === 'rsaSignature' || fieldId === 'rsaVerified') return 'rsaSigningStatus';
+                if (fieldId.startsWith('rsa')) return 'rsaStatus';
+                if (fieldId.startsWith('sha256')) return 'sha256Status';
+                return 'md5Status';
+            }
+
+            function valueFor(fieldId) {
+                const field = document.getElementById(fieldId);
+                return 'value' in field ? field.value : field.textContent;
+            }
+
+            function fallbackCopy(value) {
+                const temporaryField = document.createElement('textarea');
+                const focusedElement = document.activeElement;
+                temporaryField.value = value;
+                temporaryField.setAttribute('readonly', '');
+                temporaryField.style.cssText = 'position:fixed; opacity:0; pointer-events:none;';
+                document.body.appendChild(temporaryField);
+                temporaryField.select();
+                // eslint-disable-next-line no-restricted-properties -- Older browsers without Clipboard API need this fallback; failures offer manual copying.
+                const copied = document.execCommand('copy');
+                temporaryField.remove();
+                if (focusedElement) focusedElement.focus();
+                if (!copied) throw new Error('copy unavailable');
+            }
+
+            async function copyValue(fieldId, label) {
+                const value = valueFor(fieldId);
+                const statusId = statusForField(fieldId);
+                clearFieldError(fieldId);
+                if (!value) {
+                    notify(statusId, 'error', 'There is no ' + label + ' to copy.', [fieldId]);
+                    return;
+                }
+                try {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        await navigator.clipboard.writeText(value);
+                    } else {
+                        fallbackCopy(value);
+                    }
+                    notify(statusId, 'success', label + ' copied to the clipboard.');
+                } catch {
+                    // Show a safe recovery message rather than exposing crypto or clipboard exception details.
+                    notify(statusId, 'error', 'Could not copy ' + label + '. Select the value and copy it manually.', [fieldId]);
+                }
+            }
+
+            function downloadRsaKey(fieldId, filename, label) {
+                const value = valueFor(fieldId);
+                const statusId = 'rsaStatus';
+                clearFieldError(fieldId);
+                if (!value) {
+                    notify(statusId, 'error', 'There is no ' + label + ' to download.', [fieldId]);
+                    return;
+                }
+                const blob = new Blob([value], { type: 'application/x-pem-file;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                window.setTimeout(() => URL.revokeObjectURL(url), 0);
+                notify(statusId, 'success', label + ' download started.');
+            }
+
+            function syncExportControls() {
+                ['rsaPublicKey', 'rsaPrivateKey'].forEach(fieldId => {
+                    const control = document.querySelector('[data-testid="download-' + fieldId + '"]');
+                    if (control) control.disabled = !valueFor(fieldId);
+                });
+            }
 
             async function hashMD5(){
+                const statusId = beginAction('md5Status', ['md5Plaintext']);
                 let plaintext = $('#md5Plaintext').val();
                 let hash = await sfet.md5.hash(plaintext);
                 $('#md5Hash').val(hash);
-                toastr.success('MD5 hash generated');
+                completeAction(statusId, 'MD5 hash generated', ['md5Plaintext']);
             }
 
             async function hashSHA256(){
+                const statusId = beginAction('sha256Status', ['sha256Plaintext']);
                 let plaintext = $('#sha256Plaintext').val();
                 try {
                     let hash = await sfet.sha256.hash(plaintext);
                     $('#sha256Hash').val(hash);
-                    toastr.success('SHA-256 hash generated');
-                } catch (error){
-                    toastr.error(error.message);
+                    completeAction(statusId, 'SHA-256 hash generated', ['sha256Plaintext']);
+                } catch {
+                    // Show a safe recovery message rather than exposing crypto or clipboard exception details.
+                    notify(statusId, 'error', 'Unable to calculate the SHA-256 hash. Check the input and try again.');
                 }
             }
 
             async function generateKeys(){
-                toastr.info('generating keys');
+                if (generatingKeys) return;
+                generatingKeys = true;
+                const button = document.getElementById('generateRsaKeys');
+                const keySize = document.getElementById('keySize');
+                button.disabled = true;
+                keySize.disabled = true;
+                const statusId = beginAction('rsaStatus', ['keySize']);
+                notify(statusId, 'info', 'Generating RSA keys locally. This can take a moment.');
                 try {
                     await new Promise((resolve) => setTimeout(resolve, 750));
                     keys = await sfet.rsa.generateKeys($('#keySize').val());
-                    toastr.success(keys.keySize + '-bit keys generated in ' + keys.time + 'ms');
                     $('#rsaPublicKey').val(keys.public);
                     $('#rsaPrivateKey').val(keys.private);
-                } catch (error){
-                    toastr.error(error.message);
+                    syncExportControls();
+                    completeAction(statusId, keys.keySize + '-bit keys generated in ' + keys.time + 'ms', rsaFieldIds);
+                } catch {
+                    // Show a safe recovery message rather than exposing crypto or clipboard exception details.
+                    notify(statusId, 'error', 'Unable to generate RSA keys. Check the selected key size and try again.');
+                } finally {
+                    generatingKeys = false;
+                    button.disabled = false;
+                    keySize.disabled = false;
                 }
             }
 
             function updateRSAKeys(){
                 keys.public = $('#rsaPublicKey').val();
                 keys.private = $('#rsaPrivateKey').val();
-                toastr.success('RSA keys updated');
+                syncExportControls();
             }
 
             async function encryptRSA() {
+                const statusId = beginAction('rsaTextStatus', ['rsaPublicKey', 'rsaPlaintext']);
                 if (!keys || !keys.public || keys.public.length == 0){
-                    return toastr.error('RSA Public Key required');
+                    return notify(statusId, 'error', 'Add an RSA public key before encrypting.', ['rsaPublicKey']);
                 }
                 let plaintext = $('#rsaPlaintext').val();
                 try {
                     let encrypted = await sfet.rsa.encrypt(keys.public, plaintext);
                     $('#rsaEncryptedText').val(encrypted);
-                    toastr.success('RSA encryption successful');
-                } catch (error){
-                    toastr.error(error.message);
+                    completeAction(statusId, 'RSA encryption successful', rsaFieldIds);
+                } catch {
+                    // Show a safe recovery message rather than exposing crypto or clipboard exception details.
+                    notify(statusId, 'error', 'Unable to encrypt with this RSA public key. Check the key and message.', ['rsaPublicKey', 'rsaPlaintext']);
                 }
             }
 
             async function decryptRSA() {
+                const statusId = beginAction('rsaTextStatus', ['rsaPrivateKey', 'rsaEncryptedText']);
                 if (!keys || !keys.private || keys.private.length == 0){
-                    return toastr.error('RSA Private Key required');
+                    return notify(statusId, 'error', 'Add an RSA private key before decrypting.', ['rsaPrivateKey']);
                 }
                 let encrypted = $('#rsaEncryptedText').val();
                 try {
                     let decrypted = await sfet.rsa.decrypt(keys.private, encrypted);
                     $('#rsaPlaintext').val(decrypted);
-                    toastr.success('RSA decryption successful');
-                } catch (error){
-                    toastr.error(error.message);
+                    completeAction(statusId, 'RSA decryption successful', rsaFieldIds);
+                } catch {
+                    // Show a safe recovery message rather than exposing crypto or clipboard exception details.
+                    notify(statusId, 'error', 'Unable to decrypt with this RSA private key. Check the key and encrypted text.', ['rsaPrivateKey', 'rsaEncryptedText']);
                 }
             }
 
             function signRSA() {
+                const statusId = beginAction('rsaSigningStatus', ['rsaPrivateKey', 'rsaPlaintext']);
                 if (!keys || !keys.private || keys.private.length == 0){
-                    return toastr.error('RSA Private Key required');
+                    return notify(statusId, 'error', 'Add an RSA private key before signing.', ['rsaPrivateKey']);
                 }
                 let plaintext = $('#rsaPlaintext').val();
                 try {
                     let signature = sfet.rsa.sign(keys.private, plaintext);
                     $('#rsaSignature').val(signature);
-                    toastr.success('Unencrypted text signed successfully');
-                } catch (error){
-                    toastr.error(error.message);
+                    completeAction(statusId, 'Unencrypted text signed successfully', rsaFieldIds);
+                } catch {
+                    // Show a safe recovery message rather than exposing crypto or clipboard exception details.
+                    notify(statusId, 'error', 'Unable to sign this message. Check the private key and message.', ['rsaPrivateKey', 'rsaPlaintext']);
                 }
             }
 
             function verifyRSA() {
+                const statusId = beginAction('rsaSigningStatus', ['rsaPublicKey', 'rsaPlaintext', 'rsaSignature']);
                 if (!keys || !keys.public || keys.public.length == 0){
-                    return toastr.error('RSA Public Key required');
+                    return notify(statusId, 'error', 'Add an RSA public key before verifying.', ['rsaPublicKey']);
                 }
                 let plaintext = $('#rsaPlaintext').val();
                 let signature = $('#rsaSignature').val();
                 try {
                     let verified = sfet.rsa.verify(keys.public, plaintext, signature);
                     $('#rsaVerified').text(verified);
-                    toastr.success('Signature verified successfully');
-                } catch (error){
-                    toastr.error(error.message);
+                    completeAction(statusId, 'Signature verified successfully', rsaFieldIds);
+                } catch {
+                    // Show a safe recovery message rather than exposing crypto or clipboard exception details.
+                    notify(statusId, 'error', 'Unable to verify this signature. Check the public key, message, and signature.', ['rsaPublicKey', 'rsaPlaintext', 'rsaSignature']);
                 }
             }
 
@@ -124,9 +277,11 @@
             }
 
             async function generateRandomKey(){
+                const statusId = beginAction('aesKeyStatus', ['aesKey']);
                 $('#aesKey').val(
                     await sfet.utils.randomstring.generate()
                 );
+                completeAction(statusId, 'A new 32-character AES key is ready.', ['aesKey']);
             }
 
             async function encryptWithFreshParameter(mode, key, message) {
@@ -143,22 +298,42 @@
             }
 
             async function encryptAESText() {
+                const statusId = beginAction('aesStatus', aesTextFieldIds, ['aesDecryptStatus']);
                 let mode = $('#aesModeSelector').val();
                 let key = $('#aesKey').val();
                 let plaintext = $('#aesPlaintext').val();
+                if (key.length !== 32) {
+                    notify(statusId, 'error', 'Enter or generate a 32-character key before encrypting.', ['aesKey']);
+                    return;
+                }
                 try {
                     const encrypted = await encryptWithFreshParameter(mode, key, plaintext);
                     $('#aesEncryptedText').val(encrypted);
-                    toastr.success('AES-' + mode.toUpperCase() + ' encryption successful');
-                } catch (error){
-                    toastr.error(error.message);
+                    completeAction(statusId, 'AES-' + mode.toUpperCase() + ' encryption successful', aesTextFieldIds);
+                } catch {
+                    // Show a safe recovery message rather than exposing crypto or clipboard exception details.
+                    notify(statusId, 'error', 'Unable to encrypt this text. Check the key and message.', ['aesKey', 'aesPlaintext']);
                 }
             }
 
             async function decryptAESText() {
-                let mode = $('#aesModeSelector').val();
+                const mode = $('#aesModeSelector').val();
+                const parameterId = mode === 'cbc' ? 'aesIv' : 'aesNonce';
+                const statusId = beginAction('aesDecryptStatus', ['aesKey', 'aesEncryptedText', parameterId]);
                 let key = $('#aesKey').val();
                 let encrypted = $('#aesEncryptedText').val();
+                if (key.length !== 32) {
+                    notify(statusId, 'error', 'Enter the 32-character key that encrypted this text.', ['aesKey']);
+                    return;
+                }
+                if (!encrypted) {
+                    notify(statusId, 'error', 'Paste the encrypted text before decrypting.', ['aesEncryptedText']);
+                    return;
+                }
+                if (!$('#' + parameterId).val() && mode !== 'cbc') {
+                    notify(statusId, 'error', 'Paste the saved nonce before decrypting AES-GCM text.', [parameterId]);
+                    return;
+                }
                 try {
                     let decrypted;
                     if (mode === 'cbc') {
@@ -170,9 +345,10 @@
                         decrypted = await sfet.aes.gcm.decrypt(key, encrypted, nonce);
                     }
                     $('#aesPlaintext').val(decrypted);
-                    toastr.success('AES-' + mode.toUpperCase() + ' decryption successful');
-                } catch (error){
-                    toastr.error(error.message);
+                    completeAction(statusId, 'AES-' + mode.toUpperCase() + ' decryption successful', aesTextFieldIds);
+                } catch {
+                    // Show a safe recovery message rather than exposing crypto or clipboard exception details.
+                    notify(statusId, 'error', 'Unable to decrypt this text. Check the key, parameter, and encrypted text.', ['aesKey', 'aesEncryptedText', parameterId]);
                 }
             }
 
@@ -194,8 +370,13 @@
                 let mode = $('#aesModeSelector').val();
                 let key = $('#aesKey').val();
                 let filename = $('#aesSourceFile').val();
+                const statusId = beginAction('aesFileStatus', ['aesKey', 'aesSourceFile']);
+                if (key.length !== 32) {
+                    notify(statusId, 'error', 'Enter or generate a 32-character key before encrypting.', ['aesKey']);
+                    return;
+                }
                 if (!filename || filename.length == 0){
-                    return toastr.error('Source file must be specified');
+                    return notify(statusId, 'error', 'Choose a source file before encrypting.', ['aesSourceFile']);
                 }
 
                 $('#aesResultFile').hide();
@@ -215,20 +396,20 @@
                         $('#aesResultFile').attr('href', metadata + encrypted);
 
                         // get filename from (fake) full path
-                        let strippedFilename = filename.replace(/^.*[\\\/]/, '');
+                        let strippedFilename = filename.replace(/^.*[\\/]/, '');
                         $('#aesResultFile').attr(
                             'download',
                             strippedFilename + '.encrypted'
                         );
 
-                        toastr.success('AES-' + mode.toUpperCase() + ' encryption successful');
+                        completeAction(statusId, 'AES-' + mode.toUpperCase() + ' encryption successful', aesFileFieldIds);
                         $('#aesResultFile').show();
-                    } catch (error){
-                        toastr.error(error.message);
+                    } catch (error) {
+                        notify(statusId, 'error', fileActionFailure('encrypted', error), ['aesSourceFile']);
                     }
                 };
-                reader.onerror = function (error) {
-                    return toastr.error(error);
+                reader.onerror = function () {
+                    return notify(statusId, 'error', 'The selected file could not be read. Choose the file again and retry.', ['aesSourceFile']);
                 };
             }
 
@@ -236,8 +417,18 @@
                 let mode = $('#aesModeSelector').val();
                 let key = $('#aesKey').val();
                 let filename = $('#aesSourceFile').val();
+                let parameterId = mode === 'cbc' ? 'aesIv' : 'aesNonce';
+                const statusId = beginAction('aesFileStatus', ['aesKey', 'aesSourceFile', parameterId]);
+                if (key.length !== 32) {
+                    notify(statusId, 'error', 'Enter the 32-character key that encrypted this file.', ['aesKey']);
+                    return;
+                }
                 if (!filename || filename.length == 0){
-                    return toastr.error('Source file must be specified');
+                    return notify(statusId, 'error', 'Choose an encrypted source file before decrypting.', ['aesSourceFile']);
+                }
+                if (!$('#' + parameterId).val() && mode !== 'cbc') {
+                    notify(statusId, 'error', 'Paste the saved nonce before decrypting an AES-GCM file.', [parameterId]);
+                    return;
                 }
 
                 $('#aesResultFile').hide();
@@ -265,7 +456,7 @@
                         $('#aesResultFile').attr('href', metadata + decrypted);
 
                         // get filename from (fake) full path
-                        let strippedFilename = filename.replace(/^.*[\\\/]/, '');
+                        let strippedFilename = filename.replace(/^.*[\\/]/, '');
                         // remove '.encrypted' extension if it's there
                         let encryptedExtensionIndex = strippedFilename.lastIndexOf('.encrypted');
                         if (encryptedExtensionIndex >= 0) {
@@ -273,27 +464,112 @@
                         }
                         $('#aesResultFile').attr('download', strippedFilename);
 
-                        toastr.success('AES-' + mode.toUpperCase() + ' decryption successful');
+                        completeAction(statusId, 'AES-' + mode.toUpperCase() + ' decryption successful', aesFileFieldIds);
                         $('#aesResultFile').show();
-                    } catch (error){
-                        toastr.error(error.message);
+                    } catch (error) {
+                        notify(statusId, 'error', fileActionFailure('decrypted', error), ['aesSourceFile']);
                     }
                 };
-                reader.onerror = function (error) {
-                    return toastr.error(error);
+                reader.onerror = function () {
+                    return notify(statusId, 'error', 'The selected file could not be read. Choose the file again and retry.', ['aesSourceFile']);
                 };
+            }
+
+            function icon(path) {
+                return '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">' + path + '</svg>';
+            }
+
+            function copyButton(fieldId, label, testId) {
+                const testAttribute = testId ? ' data-testid="' + testId + '"' : '';
+                return `<button type="button" class="icon-button"${testAttribute} data-copy-field="${fieldId}" data-copy-label="${label}" title="Copy ${label}" aria-label="Copy ${label}">${icon('<rect x="8" y="8" width="10" height="12" rx="1"/><path d="M16 8V5a1 1 0 0 0-1-1H6a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h2"/>')}</button>`;
+            }
+
+            function downloadButton(fieldId, filename, label) {
+                return `<button type="button" class="icon-button" data-testid="download-${fieldId}" title="Download ${label}" aria-label="Download ${label}" onclick="downloadRsaKey('${fieldId}', '${filename}', '${label}')">${icon('<path d="M12 3v11"/><path d="m8 10 4 4 4-4"/><path d="M5 20h14"/>')}</button>`;
+            }
+
+            function renderDemo() {
+                if (document.getElementById('sfetDemo')) return;
+                const surface = document.createElement('template');
+                surface.innerHTML = `
+                    <main id="sfetDemo" class="app-shell">
+                        <header class="hero">
+                            <p class="eyebrow">Browser encryption demo</p>
+                            <h1>Simple Free Encryption Tool</h1>
+                            <p class="lede">Explore hashing, RSA, and AES with the same library used in Node.js. Deliberately copy or download values when you need to use them outside this page.</p>
+                            <p class="privacy-note"><strong>Local-only processing.</strong> Your text, keys, and results stay in this page until you explicitly copy a value or download a file. Refreshing clears the page.</p>
+                        </header>
+                        <div class="tools">
+                            <details id="demo-aes" open>
+                                <summary title="Show or hide AES encryption tools">AES encryption</summary>
+                                <div class="section-content">
+                                    <p class="section-intro">Encrypt text or a local file with a 32-character key. GCM is the recommended default because it detects changed ciphertext.</p>
+                                    <div class="field"><label for="aesModeSelector">1. Select AES mode</label><select id="aesModeSelector" title="Select AES encryption mode" onchange="updateAesMode()"><option value="cbc">CBC — legacy compatibility</option><option value="gcm" selected>GCM — authenticated encryption</option></select></div>
+                                    <p id="aesModeDescription" class="mode-description" aria-live="polite"></p>
+                                    <div class="form-grid">
+                                        <div class="field"><p id="aesKeyStatus" data-testid="aes-key-status" class="status field-status" role="status" aria-live="polite"></p><label for="aesKey">2. Key (32 chars)</label><div class="value-control"><input id="aesKey" title="AES encryption key" />${copyButton('aesKey', 'AES key', 'copy-aesKey')}<button type="button" class="secondary" title="Generate a random AES key" onclick="generateRandomKey()">Generate key</button></div><p class="field-help">Generate a new key to encrypt, or paste the same key to decrypt. Keep it secret and separate from the encrypted text.</p></div>
+                                        <div id="aesIvRow" class="field"><label for="aesIv">IV:</label><div class="value-control single"><input id="aesIv" title="AES CBC initialization vector" />${copyButton('aesIv', 'AES IV', 'copy-aesIv')}</div></div>
+                                        <div id="aesNonceRow" class="field"><label for="aesNonce">3. Nonce</label><div class="value-control single"><input id="aesNonce" title="AES GCM nonce" />${copyButton('aesNonce', 'AES nonce', 'copy-aesNonce')}</div><p class="field-help">A fresh nonce is created when you encrypt. To decrypt later, paste the nonce saved with that encrypted text.</p></div>
+                                    </div>
+                                    <div id="aesSelectorDiv" class="field"></div>
+                                    <div class="transform-grid aesTextOptions">
+                                        <div class="field"><p id="aesStatus" data-testid="aes-status" class="status field-status" role="status" aria-live="polite"></p><label for="aesPlaintext">Unencrypted text</label><div class="value-control single"><textarea id="aesPlaintext" title="Text to encrypt or decrypted result"></textarea>${copyButton('aesPlaintext', 'unencrypted text', 'copy-aesPlaintext')}</div></div>
+                                        <div class="transform-actions"><button type="button" data-testid="encrypt-aes" title="Encrypt the unencrypted text" onclick="encryptAESText()">Encrypt →</button><button type="button" class="secondary" data-testid="decrypt-aes" title="Decrypt the encrypted text" onclick="decryptAESText()">← Decrypt</button></div>
+                                        <div class="field"><p id="aesDecryptStatus" data-testid="aes-decrypt-status" class="status field-status" role="status" aria-live="polite"></p><label for="aesEncryptedText">Encrypted text</label><div class="value-control single"><textarea id="aesEncryptedText" title="Encrypted AES text"></textarea>${copyButton('aesEncryptedText', 'encrypted text', 'copy-aesEncryptedText')}</div></div>
+                                    </div>
+                                    <div class="aesFileOptions"><div class="field"><p id="aesFileStatus" data-testid="aes-file-status" class="status field-status" role="status" aria-live="polite"></p><label for="aesSourceFile">Source File:</label><input type="file" id="aesSourceFile" title="Choose a local source file" /></div><div class="actions"><button type="button" data-testid="encrypt-aes-file" title="Encrypt selected local file" onclick="encryptAESFile()">Encrypt file</button><button type="button" data-testid="decrypt-aes-file" class="secondary" title="Decrypt selected local file" onclick="decryptAESFile()">Decrypt file</button><a id="aesResultFile" title="Download the processed file">Download result</a></div></div>
+                                </div>
+                            </details>
+                            <details id="demo-rsa" open>
+                                <summary title="Show or hide RSA tools">RSA keys, encryption, and signing</summary>
+                                <div class="section-content">
+                                    <p class="section-intro">RSA is for short secrets and signatures. Generate keys locally, then copy or download only the PEM values you deliberately choose to export.</p>
+                                    <div class="rsa-generation"><div class="actions"><label class="field" for="keySize">Key size<select id="keySize" title="Select RSA key size"><option value="2048" selected>2048 bits</option><option value="4096">4096 bits</option></select></label><button id="generateRsaKeys" data-testid="generate-rsa-keys" type="button" title="Generate a new RSA key pair" onclick="generateKeys()">Generate key pair</button></div><p id="rsaStatus" data-testid="rsa-status" class="status field-status" role="status" aria-live="polite"></p></div>
+                                    <div class="form-grid">
+                                        <div class="field"><label for="rsaPublicKey">RSA public key</label><div class="value-control"><textarea id="rsaPublicKey" title="RSA public key in PEM format" oninput="updateRSAKeys()"></textarea>${copyButton('rsaPublicKey', 'RSA public key', 'copy-rsaPublicKey')}${downloadButton('rsaPublicKey', 'sfet-public-key.pem', 'RSA public key')}</div></div>
+                                        <div class="field"><label for="rsaPrivateKey">RSA private key</label><div class="value-control"><textarea id="rsaPrivateKey" title="RSA private key in PEM format" oninput="updateRSAKeys()"></textarea>${copyButton('rsaPrivateKey', 'RSA private key', 'copy-rsaPrivateKey')}${downloadButton('rsaPrivateKey', 'sfet-private-key.pem', 'RSA private key')}</div><p class="field-help">Anyone with this key can decrypt and sign. Keep it private.</p></div>
+                                    </div>
+                                    <div class="transform-grid">
+                                        <div class="field"><label for="rsaPlaintext">RSA message</label><div class="value-control single"><textarea id="rsaPlaintext" title="RSA plaintext or decrypted result"></textarea>${copyButton('rsaPlaintext', 'RSA message', 'copy-rsaPlaintext')}</div></div>
+                                        <div class="transform-actions"><button type="button" data-testid="encrypt-rsa" title="Encrypt with the RSA public key" onclick="encryptRSA()">Encrypt →</button><button type="button" data-testid="decrypt-rsa" class="secondary" title="Decrypt with the RSA private key" onclick="decryptRSA()">← Decrypt</button><p id="rsaTextStatus" class="status transform-status" role="status" aria-live="polite"></p></div>
+                                        <div class="field"><label for="rsaEncryptedText">RSA encrypted text</label><div class="value-control single"><textarea id="rsaEncryptedText" title="RSA encrypted text"></textarea>${copyButton('rsaEncryptedText', 'RSA encrypted text', 'copy-rsaEncryptedText')}</div></div>
+                                    </div>
+                                    <div class="transform-grid">
+                                        <div class="field"><label for="rsaSignature">RSA signature</label><div class="value-control single"><textarea id="rsaSignature" title="RSA signature"></textarea>${copyButton('rsaSignature', 'RSA signature', 'copy-rsaSignature')}</div></div>
+                                        <div class="transform-actions"><button type="button" data-testid="sign-rsa" title="Sign the RSA message" onclick="signRSA()">Sign →</button><button type="button" data-testid="verify-rsa" class="secondary" title="Verify the RSA signature" onclick="verifyRSA()">← Verify</button><p id="rsaSigningStatus" class="status transform-status" role="status" aria-live="polite"></p></div>
+                                        <div class="field"><span class="field-label">Verification result</span><div class="value-control single"><output id="rsaVerified" title="RSA signature verification result" aria-label="Signature verification result" aria-live="polite"></output>${copyButton('rsaVerified', 'verification result', 'copy-rsaVerified')}</div></div>
+                                    </div>
+                                </div>
+                            </details>
+                            <details id="demo-sha256" open><summary title="Show or hide SHA-256 tools">SHA-256 checksum</summary><div class="section-content"><p class="section-intro">Create a checksum to compare with a separately trusted value. A checksum does not encrypt text or prove who sent it.</p><div class="form-grid"><div class="field"><label for="sha256Plaintext">Text to hash</label><div class="value-control single"><textarea id="sha256Plaintext" title="Text for SHA-256 hashing"></textarea>${copyButton('sha256Plaintext', 'SHA-256 input', 'copy-sha256Plaintext')}</div></div><div class="field"><label for="sha256Hash">SHA-256 hash</label><div class="value-control single"><textarea id="sha256Hash" readonly title="SHA-256 hash result"></textarea>${copyButton('sha256Hash', 'SHA-256 hash', 'copy-sha256Hash')}</div></div></div><div class="actions"><button type="button" data-testid="hash-sha256" title="Calculate SHA-256 hash" onclick="hashSHA256()">Calculate hash</button></div><p id="sha256Status" data-testid="sha256-status" class="status tool-status" role="status" aria-live="polite"></p></div></details>
+                            <details id="demo-md5" open><summary title="Show or hide legacy MD5 tools">MD5 checksum <span class="legacy">Legacy only</span></summary><div class="section-content"><p class="section-intro"><strong>Use MD5 only to match an older checksum.</strong> It is not suitable for protecting new data.</p><div class="form-grid"><div class="field"><label for="md5Plaintext">Text to hash</label><div class="value-control single"><textarea id="md5Plaintext" title="Text for legacy MD5 hashing"></textarea>${copyButton('md5Plaintext', 'MD5 input', 'copy-md5Plaintext')}</div></div><div class="field"><label for="md5Hash">MD5 checksum</label><div class="value-control single"><textarea id="md5Hash" readonly title="Legacy MD5 checksum result"></textarea>${copyButton('md5Hash', 'MD5 checksum', 'copy-md5Hash')}</div></div></div><div class="actions"><button type="button" title="Calculate legacy MD5 checksum" onclick="hashMD5()">Calculate legacy checksum</button></div><p id="md5Status" data-testid="md5-status" class="status tool-status" role="status" aria-live="polite"></p></div></details>
+                        </div>
+                        <footer class="footer">This open-source demo can run standalone. <a href="https://github.com/therightstuff/simple-free-encryption-tool" target="_blank" rel="noopener">View the project on GitHub</a> · <a href="https://www.industrialcuriosity.com/p/donate.html" target="_blank" rel="noopener">Support the project</a></footer>
+                    </main>`;
+                document.body.append(surface.content);
+                document.getElementById('legacy-demo-markup')?.remove();
             }
 
             // Call this code when the page is done loading.
             $(function () {
+                renderDemo();
+                $(document).on('input change', 'input, textarea, select', function () {
+                    clearFieldError(this.id);
+                });
+                document.querySelectorAll('[data-copy-field]').forEach(button => {
+                    button.addEventListener('click', () => {
+                        copyValue(button.dataset.copyField, button.dataset.copyLabel);
+                    });
+                });
                 // Initialize AES mode description.
                 updateAesMode();
+                syncExportControls();
 
                 // Check for the various File API support.
                 if (window.File && window.FileReader && window.FileList && window.Blob) {
                     console.log('file handling available');
                     $('#aesSelectorDiv').html(
-                        '<br /><label for="aesSelector">Input type:</label> <select id="aesSelector">' +
+                        '<label for="aesSelector">Input type:</label> <select id="aesSelector" title="Choose text or a local file">' +
                         '<option value="text">Text</option>' +
                         '<option value="file">Binary File</option>' +
                         '</select>'
@@ -308,44 +584,68 @@
                     });
                     $('#aesResultFile').hide();
                 } else {
-                    console.log('file handling not available');
+                    $('.aesFileOptions').hide();
                 }
             });
         </script>
         <style>
-            body {
-                text-align: center;
-            }
-            textarea {
-                width: 250px;
-                height: 75px;
-            }
-            .center-container {
-                text-align: center;
-            }
-            td.align-center, th.align-center {
-                text-align: center;
-            }
-            td.align-right, th.align-right {
-                text-align: right;
-            }
-            td.align-left, th.align-left {
-                text-align: left;
-            }
-            td.valign-middle, th.valign-middle, div.valign-middle {
-                vertical-align: middle;
-            }
-            table {
-                margin: 0 auto;
-                border-collapse: collapse;
-            }
-            h2 {
-                text-align: center;
-                margin-top: 20px;
-            }
+            :root { color: #172033; background: #f2f5fa; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+            * { box-sizing: border-box; }
+            body { margin: 0; min-width: 320px; background: radial-gradient(circle at top left, #e0eaff, #f7f9fc 45%, #edf1f7); }
+            button, input, select, textarea { font: inherit; }
+            button, input, select, textarea { border: 1px solid #bdc8db; border-radius: 8px; }
+            button { min-height: 40px; padding: .55rem .85rem; cursor: pointer; color: #fff; background: #2348a5; border-color: #2348a5; font-weight: 700; }
+            button:hover:not(:disabled) { background: #193987; }
+            button:disabled { cursor: not-allowed; opacity: .5; }
+            input, select, textarea { width: 100%; padding: .65rem .72rem; color: #172033; background: #fff; }
+            textarea { min-height: 8rem; resize: vertical; }
+            :focus-visible { outline: 3px solid #f59e0b; outline-offset: 2px; }
+            .app-shell { width: min(1120px, calc(100% - 2rem)); margin: 0 auto; padding: 2rem 0 3rem; }
+            .hero { max-width: 760px; padding: 1.5rem 0 1.25rem; }
+            .eyebrow { margin: 0 0 .5rem; color: #3958a6; font-size: .85rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+            .hero h1 { margin: 0; font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.05; letter-spacing: -.045em; }
+            .lede { max-width: 64ch; margin: 1rem 0; color: #42526b; font-size: 1.06rem; line-height: 1.65; }
+            .privacy-note, .mode-description { margin: 1rem 0; padding: .85rem 1rem; border: 1px solid #adc4e9; border-radius: 10px; color: #263b66; background: #e9f1ff; line-height: 1.45; }
+            .tools { display: grid; gap: 1rem; }
+            details { overflow: hidden; border: 1px solid #d6deeb; border-radius: 14px; background: #fff; box-shadow: 0 10px 28px rgba(25, 48, 89, .07); }
+            summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.05rem 1.2rem; cursor: pointer; font-size: 1.13rem; font-weight: 760; }
+            summary::after { content: '⌄'; color: #405272; font-size: 1.4rem; }
+            .section-content { padding: 0 1.2rem 1.25rem; border-top: 1px solid #e3e8f1; }
+            .section-intro, .field-help { color: #53627a; line-height: 1.55; }
+            .field-help { margin: 0; font-size: .88rem; }
+            .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+            .field { display: grid; gap: .45rem; min-width: 0; }
+            .field > label, .field-label { color: #34425a; font-weight: 700; }
+            .value-control { position: relative; display: block; }
+            .value-control > input, .value-control > textarea { padding-right: 5rem; }
+            .value-control.single > input, .value-control.single > textarea { padding-right: 2.8rem; }
+            .actions { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: 1rem; }
+            .secondary, .icon-button { color: #24499f; background: #eef3ff; border-color: #aec1e7; }
+            .icon-button { position: absolute; z-index: 1; top: .45rem; right: .45rem; display: grid; width: 28px; min-width: 28px; min-height: 28px; padding: 0; place-items: center; border-radius: 6px; }
+            .icon-button + .icon-button { right: 2.6rem; }
+            .icon { display: block; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+            .value-control > .secondary { margin-top: .5rem; }
+            .transform-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(9rem, auto) minmax(0, 1fr); gap: 1rem; align-items: center; }
+            .transform-actions { display: grid; gap: .6rem; align-content: center; }
+            .transform-actions button { width: 100%; }
+            .status { min-height: 2.6rem; margin: 1rem 0; padding: .7rem .9rem; border: 1px solid transparent; border-radius: 9px; line-height: 1.35; }
+            .status:empty { display: none; }
+            .status-success { color: #155b3a; border-color: #a5d7ba; background: #edf9f1; }
+            .status-error { color: #9b2335; border-color: #f1b6c0; background: #fff0f2; }
+            .status-info { color: #254276; border-color: #b9cdf4; background: #edf3ff; }
+            .tool-status { margin: 1rem 0 0; }
+            .field-status { margin: 0; }
+            .field-status:empty { display: block; visibility: hidden; }
+            .transform-status { min-height: 0; margin: 0; }
+            .input-error { border-color: #c8374c; background: #fff5f6; box-shadow: 0 0 0 2px rgba(200, 55, 76, .14); }
+            .legacy { color: #8b5213; font-weight: 750; }
+            .footer { margin: 1.5rem 0 0; color: #5f6f86; line-height: 1.6; }
+            @media (max-width: 680px) { .app-shell { width: min(100% - 1rem, 1120px); padding-top: 1rem; } .form-grid, .transform-grid { grid-template-columns: 1fr; } .transform-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+            @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: .01ms !important; } }
         </style>
     </head>
     <body>
+        <template id="legacy-demo-markup">
         <div class="center-container">
         <div style="width:500px; margin: 0 auto;">
         <h1>Simple Free Encryption Tool</h1>
@@ -542,5 +842,6 @@
             </table>
 
         </div>
+        </template>
     </body>
 </html>

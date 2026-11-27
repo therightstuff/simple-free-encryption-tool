@@ -70,6 +70,10 @@ Copy [windowSfet.js](dist/js/windowSfet.js) into a folder named `js` beside `ind
 - **Sign a message.** A recipient who trusts your public key can check that you signed the message and that it arrived unchanged. [Signing example](docs/usage.md#sign-a-message)
 - **Compare two copies of some text.** Calculate a checksum for each and compare the results. [Checksum guide](docs/usage.md#calculate-a-checksum)
 
+## Development
+
+Run `npm run verify` before completing code changes. See [local verification and browser setup](docs/development.md). No Sonar subscription or server is required.
+
 ## Where to go next
 
 - [Supply your own IV and use classic AES-GCM or AES-CBC](docs/usage.md#classic-aes-methods)
